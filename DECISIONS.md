@@ -4,6 +4,11 @@ Record every choice made between options (date, question, choice, reason). Newes
 
 | Date | Question | Decision | Reason |
 |---|---|---|---|
+| 2026-10-22 | R01 vs. shifting rooms | R01 fires only for the room just entered, not for every historical `Visited` fact | A room visited earlier can receive a pit when its wing rotates. Re-deriving `NoPit` from `Visited` resurrected stale safety and killed B3; durable conclusions are now only those R16 transports |
+| 2026-10-22 | Enumeration and `Visited` | `Visited` is not treated as current `NoPit`; a known ghost room is pit-free and a known pit room is ghost-free | Historical visits say nothing about post-shift contents; the generator never stacks a pit and the ghost |
+| 2026-10-22 | Oracle and shifts | The oracle applies `ShiftApplied` mappings to its known pits/ghost | The oracle is an upper bound, so it must not plan on the pre-shift map after a rotation |
+| 2026-10-22 | B3 forced guesses | R22 gamble deaths are reported as forced guesses, not hidden as failures | Some haunted/explorer boards have no certainly-safe unvisited room; the sim reports the rate so the claim is honest |
+| 2026-10-22 | Sim seeds | Fixed `SIM-<MODE>-NNN` seeds per mode, 200 per mode, one JSON record per game | Same seed reproduces the same map/shift/outcome and the results file is directly comparable across agents |
 | 2026-10-22 | Engine for the game UI | pygame-ce | One language (Python), good animation/audio support, easy to demo offline |
 | 2026-10-22 | Core AI approach | Forward chaining + exact enumeration + A* | Meets the brief (rule-based, forward chaining) and is stronger than forward chaining alone; see docs/ALGORITHMS.md |
 | 2026-10-22 | RL | Optional, after M5 only | Brief does not require it; see PRD Section 16 |

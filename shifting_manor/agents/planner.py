@@ -108,5 +108,10 @@ def cautious_route(
     )
 
 
+def expected_utility(risk: float, path_cost: int, unknown_neighbours: int) -> float:
+    """R22 gamble score from ALGORITHMS.md 4."""
+    return -1000.0 * risk - path_cost + 0.5 * unknown_neighbours
+
+
 def _all_cells(size: int) -> list[Cell]:
     return [(x, y) for y in range(size) for x in range(size)]
