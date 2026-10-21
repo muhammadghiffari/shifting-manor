@@ -11,11 +11,11 @@ _Last updated by:_ coding agent · _Date:_ 2026-10-22 (overnight run)
 - **M3 — Agents + simulation** (PR #12, merged `348c3fe`, tag `m3`). Random, reactive, B2, B2b, B3 and oracle agents; exact pit/ghost model enumeration with weighted worlds and a 14-cell fallback; risk-weighted A*; R22 expected-utility gamble; R23 retreat; 200-seed/mode headless runner that writes `sim/results.json` and prints the metrics table.
   - Bugs found by the sim and fixed at the root: R01 was re-deriving `NoPit`/`NoGhost` from durable `Visited` facts after a shift moved a hazard into an old room; enumeration also treated historical `Visited` as current `NoPit`; fully-resolved constraints were misreported as inconsistent; the oracle never applied `ShiftApplied`, so it planned on the pre-shift map.
   - B3 deaths in the 200-seed suite are all R22 forced guesses (no safe unvisited room), never a known-`Unsafe`/`Pit`/`Ghost` step.
-- **M4 — Play mode UI** (PR #13, tag pending). Title, mode select, play board with lantern fog and wing runes, Senses panel, HUD with shift clock, right-click/key marks, pause, shift animation with rotating marks and dust, and result screen with stars/stats/seed and Replay/New seed/Menu. Keyboard and mouse both work. Screenshots in `docs/screens/` (title, mode select, board with fog, shift mid-frame, pause, result).
+- **M4 — Play mode UI** (PR #13, squash-merged `fb5ed75`, tag `m4`). Title, mode select, play board with lantern fog and wing runes, Senses panel, HUD with shift clock, right-click/key marks, pause, shift animation with rotating marks and dust, and result screen with stars/stats/seed and Replay/New seed/Menu. Keyboard and mouse both work. Screenshots in `docs/screens/` (title, mode select, board with fog, shift mid-frame, pause, result).
 
 ## In progress
 
-- M4 PR #13 CI and tag `m4`; stop before M5.
+- None. M4 is merged and tagged; stopped before M5 as instructed, pending human review of the M4 screenshots.
 
 ## Blocked
 
