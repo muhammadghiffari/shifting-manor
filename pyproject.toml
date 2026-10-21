@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shifting-manor"
+version = "0.0.1"
+description = "Haunted-manor deduction game with a rule-based, forward-chaining Caretaker AI (AI course, Week 6)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Muhammad Ghiffari" }, { name = "Radithia Ary Winata" }]
+dependencies = ["pygame-ce>=2.5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[tool.setuptools.packages.find]
+include = ["shifting_manor*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

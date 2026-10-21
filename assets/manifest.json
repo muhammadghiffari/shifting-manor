@@ -1,0 +1,4 @@
+{
+  "_comment": "Keys = file names in ASSETS.md without extension. The coding agent generates the full manifest; missing files fall back to placeholders.",
+  "caretaker_walk_side": { "file": "sprites/caretaker_walk_side.png", "frame": [32, 32], "frames": 6, "fps": 10, "fallback": "#FFB347" }
+}
