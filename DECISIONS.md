@@ -4,6 +4,11 @@ Record every choice made between options (date, question, choice, reason). Newes
 
 | Date | Question | Decision | Reason |
 |---|---|---|---|
+| 2026-10-22 | M4 UI canvas | Fixed 1280×720 logical surface, scaled/letterboxed into the window; F11 toggles fullscreen | One coordinate system for drawing, mouse mapping and screenshots; matches PRD 8.1 |
+| 2026-10-22 | M4 UI strings | Every user-facing string in `ui/strings.py`, palette/fonts/helpers in `ui/theme.py` | One place to reword or re-theme without touching scene logic |
+| 2026-10-22 | Result stars | Draw filled/empty star polygons instead of Unicode `★`/`☆` | pygame's default font shows missing-glyph boxes for those code points |
+| 2026-10-22 | Shift overlay | Rotate a translucent 3×3 floor with grid lines, marks and dust inside the wing | A transparent square with only marks did not read as a rotating wing |
+| 2026-10-22 | M4 scope | Only title, mode select, play, fog, HUD, marks and result; no Watch AI/Duel/SimLab/tutorial/settings | Those are M5/M6 deliverables; M4 is the playable human UI |
 | 2026-10-22 | R01 vs. shifting rooms | R01 fires only for the room just entered, not for every historical `Visited` fact | A room visited earlier can receive a pit when its wing rotates. Re-deriving `NoPit` from `Visited` resurrected stale safety and killed B3; durable conclusions are now only those R16 transports |
 | 2026-10-22 | Enumeration and `Visited` | `Visited` is not treated as current `NoPit`; a known ghost room is pit-free and a known pit room is ghost-free | Historical visits say nothing about post-shift contents; the generator never stacks a pit and the ghost |
 | 2026-10-22 | Oracle and shifts | The oracle applies `ShiftApplied` mappings to its known pits/ghost | The oracle is an upper bound, so it must not plan on the pre-shift map after a rotation |

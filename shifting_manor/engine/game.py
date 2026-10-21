@@ -193,6 +193,13 @@ class Game:
             "entrance": self.state.entrance,
         }
 
+    def shift_status(self) -> tuple[int, str, int] | None:
+        """(wing, direction, actions_left) for the telegraphed shift, else None."""
+        if self._pending is None or self._pending_due is None:
+            return None
+        left = max(0, self._pending_due - self.state.action_count)
+        return (self._pending.wing, self._pending.direction, left)
+
     # -- internals --------------------------------------------------------
     def _apply(self, action: Action, events: list[Event]) -> StepResult | None:
         st = self.state
