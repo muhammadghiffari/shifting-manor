@@ -10,4 +10,6 @@ Record every choice made between options (date, question, choice, reason). Newes
 | 2026-10-22 | Repo visibility | Private initially | Owners decide on publishing after the lecturer policy is checked |
 | 2026-10-22 | Branch protection | Not available on the current plan; follow the PR rule manually | Section 12.5 allows this; every milestone PR is merged only after green CI |
 | 2026-10-22 | M0 window | Placeholder title window, real scenes in M4 | Keeps M0 small; the launcher/CI wiring is what M0 verifies |
+| 2026-10-22 | `Leave` cost | Free; does not advance the action counter | The PRD gives oil costs only to Move and Cast Charm and says the run ends; counting it would make the final -1 score arbitrary |
+| 2026-10-22 | Invalid shifts | Marked skipped at telegraph time and logged; next shift stays on the every-K schedule | Matches AGENT.md 3.1 ("if still invalid, mark the shift skipped") and keeps the clock predictable |
 | 2026-10-22 | Code license | MIT | Simple, permissive; assets are licensed per file |

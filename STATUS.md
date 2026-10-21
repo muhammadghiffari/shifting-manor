@@ -5,11 +5,12 @@ _Last updated by:_ coding agent · _Date:_ 2026-10-22 (overnight run)
 ## Done
 
 - **Section 12 — GitHub setup.** Private repo `muhammadghiffari/shifting-manor`, description, topics, MIT `LICENSE`, `main` pushed, CI green on the initial commit (run 39658869803). Milestones M0–M7 and issues #1–#8 created with acceptance criteria; labels created. Branch protection unavailable on this plan, so the per-milestone PR rule is followed by hand (see DECISIONS.md).
-- **M0 — Scaffolding** (PR to be linked). Package layout, `pyproject.toml`, pygame-ce launcher with a placeholder window, ruff + pytest CI, headless UI smoke test.
+- **M0 — Scaffolding** (PR #9, merged `6f7e45c`, tag `m0`). Package layout, `pyproject.toml`, pygame-ce launcher with a placeholder window, ruff + pytest CI, headless UI smoke test.
+- **M1 — Engine.** Seeded generator (protected entrance neighbours, treasure reachable by a hazard-free path), percepts, Move/CastCharm/Leave, scoring, death/oil-out/escape, Shift telegraph + validation + skip + exact mapping. Rotation properties and the 1000-random-game soak test pass locally.
 
 ## In progress
 
-- M1 — Engine.
+- M1 PR/CI, then M2 — KB + inference.
 
 ## Blocked
 
@@ -30,6 +31,7 @@ CLI and sim commands are added when M2/M3 land.
 ## Test counts / sim results
 
 - M0: 2 tests pass (version smoke + 3-frame headless UI smoke). Ruff clean.
+- M1: 154 tests pass locally (rotation, generator over 40 seeds/mode, percepts, actions/scoring, shift, deterministic event logs, 1000 random games). Ruff clean.
 
 ## Decisions made (also in DECISIONS.md)
 
