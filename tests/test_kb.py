@@ -40,6 +40,7 @@ def add(kb: KnowledgeBase, *items) -> None:
 
 # -- one scenario per rule -------------------------------------------------
 def s_r01(kb):
+    kb.set_position((1, 1))
     add(kb, Fact("Visited", (1, 1)))
 
 

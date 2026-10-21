@@ -21,7 +21,12 @@ def _premises(*items: object) -> tuple[object, ...]:
 
 # -- R01-R04: visited rooms and absence of clues ---------------------------
 def _r01(kb: KnowledgeBase):
-    return [Binding(_premises(f), {"cell": f.cell}) for f in kb.named("Visited")]
+    # Only the room just entered: a durable Visited fact from an earlier turn
+    # says nothing about what a shift may have moved into that room since.
+    here = _at(kb)
+    if not kb.has("Visited", here):
+        return []
+    return [Binding(_premises(Fact("Visited", here)), {"cell": here})]
 
 
 def _r01_out(kb: KnowledgeBase, b: Binding):

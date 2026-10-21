@@ -5,8 +5,13 @@ from __future__ import annotations
 import random
 from collections.abc import Iterable
 
-from shifting_manor.agents.planner import Route, cautious_route, safe_route
-from shifting_manor.engine.grid import DIRS, in_bounds, manhattan, step
+from shifting_manor.agents.planner import (
+    Route,
+    cautious_route,
+    expected_utility,
+    safe_route,
+)
+from shifting_manor.engine.grid import DIRS, in_bounds, manhattan, neighbours, step
 from shifting_manor.engine.types import (
     Action,
     CastCharm,
@@ -19,6 +24,7 @@ from shifting_manor.engine.types import (
     Percepts,
 )
 from shifting_manor.kb.base import KnowledgeBase
+from shifting_manor.kb.enumerate import Model, enumerate_models
 from shifting_manor.kb.facts import Explanation, Firing
 
 
@@ -55,6 +61,7 @@ class KBAgent:
         self.last = Explanation()
         self.last_firings: list[Firing] = []
         self.last_action: Action | None = None
+        self.model: Model | None = None
 
     def reset(self, info: GameInfo) -> None:
         self.info = info
@@ -68,6 +75,7 @@ class KBAgent:
         self.last = Explanation()
         self.last_firings = []
         self.last_action = None
+        self.model = None
 
     def act(self, percepts: Percepts, events: Iterable[Event]) -> Action:
         if self.info is None or self.kb is None:
@@ -78,6 +86,11 @@ class KBAgent:
         self._sync_globals()
         self.kb.observe(percepts)
         self._sync_globals()
+        self.model = enumerate_models(self.kb)
+        if self.model.warnings:
+            for warning in self.model.warnings:
+                if warning not in self.kb.warnings:
+                    self.kb.warnings.append(warning)
         action = self._decide()
         self.last_action = action
         self.last_firings = list(self.kb.firings)
@@ -150,7 +163,7 @@ class KBAgent:
         assert self.info is not None
         if self.pos == self.info.entrance:
             return Leave()
-        action = self._move_to(self.info.entrance, safe=not self.has_treasure, thought=thought)
+        action = self._move_to(self.info.entrance, safe=True, thought=thought)
         if action is not None:
             return action
         action = self._move_to(self.info.entrance, safe=False, thought=thought)
@@ -160,13 +173,23 @@ class KBAgent:
 
     def _move_to(self, target: Cell, *, safe: bool, thought: str) -> Action | None:
         assert self.kb is not None
+        risk_of = self.model.risk if self.model is not None else None
         route: Route | None
         if safe:
             route = safe_route(self.kb, self.pos, target)
         else:
             avoid = self._avoid_wing()
-            route = cautious_route(self.kb, self.pos, target, avoid=avoid, avoid_penalty=0.3)
+            route = cautious_route(
+                self.kb,
+                self.pos,
+                target,
+                risk_of=risk_of,
+                avoid=avoid,
+                avoid_penalty=0.3,
+            )
         if route is None or route.first_step is None:
+            return None
+        if not self._budget_ok(route, target):
             return None
         direction = direction_between(self.pos, route.first_step)
         if direction is None:
@@ -174,8 +197,34 @@ class KBAgent:
         self.last = Explanation(thought=thought, firings=list(self.kb.firings))
         return Move(direction)
 
-    def _gamble_target(self) -> Cell | None:
+    def _budget_ok(self, route: Route, target: Cell) -> bool:
+        assert self.info is not None and self.kb is not None
+        if self.model is None:
+            return True
+        if target == self.info.entrance:
+            return route.steps <= self.oil
+        back = cautious_route(self.kb, target, self.info.entrance, risk_of=self.model.risk)
+        return_steps = back.steps if back is not None else manhattan(target, self.info.entrance)
+        return route.steps + return_steps <= self.oil
+
+    def _unknown_neighbours(self, cell: Cell) -> int:
         assert self.kb is not None
+        count = 0
+        for nxt in neighbours(cell, self.kb.info.size):
+            known = (
+                self.kb.has("Visited", nxt)
+                or self.kb.has("Safe", nxt)
+                or self.kb.has("Pit", nxt)
+                or self.kb.has("Ghost", nxt)
+                or self.kb.has("NoPit", nxt)
+                or self.kb.has("NoGhost", nxt)
+            )
+            if not known:
+                count += 1
+        return count
+
+    def _gamble_target(self) -> Cell | None:
+        assert self.kb is not None and self.model is not None
         candidates = self.kb.frontier()
         if not candidates:
             candidates = [
@@ -188,7 +237,26 @@ class KBAgent:
             ]
         if not candidates:
             return None
-        return min(candidates, key=lambda c: (manhattan(self.pos, c), c))
+        avoid = self._avoid_wing()
+        scored: list[tuple[float, int, Cell]] = []
+        for cell in candidates:
+            route = cautious_route(
+                self.kb,
+                self.pos,
+                cell,
+                risk_of=self.model.risk,
+                avoid=avoid,
+                avoid_penalty=0.3,
+            )
+            if route is None:
+                continue
+            utility = expected_utility(
+                self.model.risk(cell), route.steps, self._unknown_neighbours(cell)
+            )
+            scored.append((-utility, route.steps, cell))
+        if not scored:
+            return None
+        return min(scored)[2]
 
     def _avoid_wing(self) -> set[Cell]:
         assert self.kb is not None

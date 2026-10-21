@@ -226,17 +226,16 @@ class KnowledgeBase:
         return {f.cell for f in self.facts if f.name == name and f.cell is not None}
 
     def frontier(self) -> list[Cell]:
-        cells: set[Cell] = set()
+        pit_cells: set[Cell] = set()
+        ghost_cells: set[Cell] = set()
         for con in self.constraints:
-            if con.kind in ("PIT", "GHOST"):
-                cells.update(con.cells)
-        decided = (
-            self.cell_set("NoPit")
-            | self.cell_set("Pit")
-            | self.cell_set("NoGhost")
-            | self.cell_set("Ghost")
-        )
-        return sorted(cells - decided)
+            if con.kind == "PIT":
+                pit_cells.update(con.cells)
+            elif con.kind == "GHOST":
+                ghost_cells.update(con.cells)
+        pit_candidates = pit_cells - self.cell_set("NoPit") - self.cell_set("Pit")
+        ghost_candidates = ghost_cells - self.cell_set("NoGhost") - self.cell_set("Ghost")
+        return sorted(pit_candidates | ghost_candidates)
 
     def frontier_pits(self) -> list[Cell]:
         uncertain = set()
