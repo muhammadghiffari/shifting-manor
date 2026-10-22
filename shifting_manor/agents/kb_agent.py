@@ -109,6 +109,7 @@ class KBAgent:
         events = list(events)
         self.gamble_candidates = []
         self.last_gamble = None
+        self.last = Explanation()
         self.kb.on_events(events)
         self._absorb(events)
         self._sync_globals()
@@ -123,7 +124,7 @@ class KBAgent:
         self.last_action = action
         self.last_firings = list(self.kb.firings)
         self.last = Explanation(
-            thought=self._thought(action),
+            thought=self.last.thought or self._thought(action),
             firings=self.last_firings,
             beliefs=self.kb.belief_labels(),
         )

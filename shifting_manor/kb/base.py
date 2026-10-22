@@ -41,13 +41,17 @@ class KnowledgeBase:
         self.percept_history: list[tuple[Cell, Percepts]] = []
         self.log: list[Firing] = []
         self.firings: list[Firing] = []
+        self.all_log: list[Firing] = []
+        self.all_firings: list[Firing] = []
         self.pending_firings: list[Firing] = []
         self.provenance: dict[Fact, Firing] = {}
+        self.constraint_provenance: dict[Constraint, Firing] = {}
         self.derived_prev: set[Fact] = set()
         self.rederivation_count = 0
         self.rederivation_by_rule: Counter[str] = Counter()
         self.last_rederivations = 0
         self.last_rederivations_by_rule: Counter[str] = Counter()
+        self.shift_count = 0
         self.turn = 0
         self.warnings: list[str] = []
         self.set_global("PitTotal", info.pit_total)
@@ -96,7 +100,10 @@ class KnowledgeBase:
     def set_global(self, name: str, value: object) -> None:
         self.base = {f for f in self.base if f.name != name}
         self.derived = {f for f in self.derived if f.name != name}
-        self.base.add(Fact(name, value=value))
+        item = Fact(name, value=value)
+        self.base.add(item)
+        # A global is given, not inferred; it is a proof leaf like a percept.
+        self.provenance.setdefault(item, Firing("GIVEN", (), (item,), self.turn))
 
     def add_base(self, item: Fact | Constraint) -> bool:
         if isinstance(item, Constraint):
@@ -135,13 +142,17 @@ class KnowledgeBase:
         return True
 
     def set_position(self, cell: Cell) -> None:
-        self.add_base(Fact("At", cell))
+        item = Fact("At", cell)
+        self.add_base(item)
+        self.provenance[item] = Firing("PERCEPT", (), (item,), self.turn)
 
     # -- observation and events ------------------------------------------
     def observe(self, percepts: Percepts) -> list[Firing]:
         cell = self.position
         self.percept_history.append((cell, percepts))
-        self.add_base(Fact("Visited", cell))
+        visited = Fact("Visited", cell)
+        self.add_base(visited)
+        self.provenance[visited] = Firing("PERCEPT", (), (visited,), self.turn)
         observed: list[Fact] = [
             Fact("Breeze", cell) if percepts.breeze else Fact("NoBreeze", cell),
             Fact("Chill", cell) if percepts.chill else Fact("NoChill", cell),
@@ -184,6 +195,7 @@ class KnowledgeBase:
         self.set_global("GhostAlive", False)
 
     def apply_shift(self, wing: int, direction: str, mapping: dict[Cell, Cell]) -> None:
+        self.shift_count += 1
         if self.variant == "b2":
             return
         self.derived = set()
@@ -207,6 +219,7 @@ class KnowledgeBase:
             }
             return
         old_base = self.base
+        old_constraints = self.constraints
         new_base, new_constraints = transport(self.base, self.constraints, mapping)
         moved_pairs = [
             (old, Fact(old.name, mapping[old.cell], old.value))
@@ -227,11 +240,21 @@ class KnowledgeBase:
         premise = Fact("Rotated", value=(wing, direction))
         count = len(moved_pairs)
         note = f"R16 transported {count} fact{'' if count == 1 else 's'} (wing {wing}, {direction})"
-        firing = Firing("R16", (premise,), changed, self.turn, note)
+        firing = Firing("R16", (premise,), changed, self.turn, note, shift_index=self.shift_count)
         self.pending_firings.append(firing)
         self.log.append(firing)
         for old, new in moved_pairs:
-            self.provenance[new] = Firing("R16", (old,), (new,), self.turn, note)
+            self.provenance[new] = Firing(
+                "R16", (old,), (new,), self.turn, note, shift_index=self.shift_count
+            )
+        for old in old_constraints:
+            if old.kind not in ("PIT", "GHOST"):
+                continue
+            new = Constraint(old.kind, frozenset(mapping.get(c, c) for c in old.cells))
+            if new != old:
+                self.constraint_provenance[new] = Firing(
+                    "R16", (old,), (new,), self.turn, note, shift_index=self.shift_count
+                )
 
     @staticmethod
     def _transport_fact(item: Fact, mapping: dict[Cell, Cell]) -> Fact:
@@ -250,6 +273,7 @@ class KnowledgeBase:
         self.last_rederivations_by_rule = Counter()
         firings = forward_chain(self, RULES, self.turn)
         new_firings: list[Firing] = []
+        turn_firings: list[Firing] = []
         for firing in firings:
             fresh: list[object] = []
             for item in firing.conclusions:
@@ -261,15 +285,30 @@ class KnowledgeBase:
                 else:
                     fresh.append(item)
             if not fresh:
+                turn_firings.append(
+                    Firing(
+                        firing.rule_id,
+                        firing.premises,
+                        firing.conclusions,
+                        firing.turn,
+                        firing.note,
+                        rederived=True,
+                    )
+                )
                 continue
             logged = Firing(firing.rule_id, firing.premises, tuple(fresh), firing.turn, firing.note)
             new_firings.append(logged)
+            turn_firings.append(logged)
             for item in fresh:
                 if isinstance(item, Fact):
                     self.provenance.setdefault(item, logged)
+                else:
+                    self.constraint_provenance.setdefault(item, logged)
         self.derived_prev = set(self.derived)
         self.firings = [*event_firings, *new_firings]
+        self.all_firings = [*event_firings, *turn_firings]
         self.log.extend(new_firings)
+        self.all_log.extend(self.all_firings)
         durable = {
             f
             for f in self.derived
