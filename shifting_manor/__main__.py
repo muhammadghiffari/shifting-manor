@@ -16,6 +16,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--no-audio", action="store_true")
     parser.add_argument("--frames", type=int, default=None, help="run N frames then exit")
     parser.add_argument("--screenshot", default=None, help="save the final frame as a PNG")
+    parser.add_argument(
+        "--demo", action="store_true", help="start Watch AI and loop the demo seeds"
+    )
     args = parser.parse_args(argv)
 
     from shifting_manor.ui.app import main as ui_main
@@ -27,6 +30,7 @@ def main(argv: list[str] | None = None) -> None:
         mode=args.mode,
         frames=args.frames,
         screenshot=args.screenshot,
+        demo=args.demo,
     )
 
 

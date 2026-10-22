@@ -43,3 +43,12 @@ def test_entrypoint_saves_screenshot(tmp_path) -> None:
     assert result.returncode == 0, result.stderr
     assert path.exists()
     assert path.stat().st_size > 1000
+
+
+def test_demo_watch_headless_through_entry_point(tmp_path) -> None:
+    path = tmp_path / "watch.png"
+    result = run_cli("--demo", "--frames", "120", "--screenshot", str(path))
+    assert result.returncode == 0, result.stderr
+    assert "Traceback" not in result.stderr
+    assert path.exists()
+    assert path.stat().st_size > 1000
