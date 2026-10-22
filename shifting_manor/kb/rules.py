@@ -215,18 +215,31 @@ def _r15_out(kb: KnowledgeBase, b: Binding):
 def _r17(kb: KnowledgeBase):
     start = _at(kb)
     safe = kb.cell_set("Safe") | {start}
-    seen = {start}
+    parent: dict[Cell, Cell | None] = {start: None}
     queue = deque([start])
     while queue:
         cur = queue.popleft()
         for nxt in neighbours(cur, kb.info.size):
-            if nxt in safe and nxt not in seen:
-                seen.add(nxt)
+            if nxt in safe and nxt not in parent:
+                parent[nxt] = cur
                 queue.append(nxt)
-    return [
-        Binding(_premises(Fact("At", start), Fact("Safe", c) if c in safe else None), {"cell": c})
-        for c in sorted(seen)
-    ]
+    out = []
+    for cell in sorted(parent):
+        path = []
+        cur: Cell | None = cell
+        while cur is not None:
+            path.append(cur)
+            cur = parent[cur]
+        path.reverse()
+        path_text = " -> ".join(f"({x},{y})" for x, y in path)
+        out.append(
+            Binding(
+                _premises(Fact("At", start), Fact("Safe", cell) if cell != start else None),
+                {"cell": cell},
+                note=f"via safe path: {path_text}",
+            )
+        )
+    return out
 
 
 def _r17_out(kb: KnowledgeBase, b: Binding):
@@ -364,8 +377,7 @@ RULES: list[Rule] = [
     Rule(
         "R16",
         "Rotated(wing,direction) => transport pit/ghost facts and constraints",
-        lambda kb: [],
-        lambda kb, b: (),
+        event_driven=True,
     ),
     Rule("R17", "Safe path from agent to b => Reachable(b)", _r17, _r17_out),
     Rule("R18", "HasTreasure and Reachable(entrance) => Goal entrance", _r18, _r18_out),

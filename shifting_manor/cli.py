@@ -8,6 +8,7 @@ import sys
 from shifting_manor.agents import make_agent
 from shifting_manor.engine.game import Game
 from shifting_manor.engine.types import Percepts
+from shifting_manor.trace import format_firing
 
 
 def describe_percepts(p: Percepts) -> str:
@@ -62,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"     new: {','.join(ids)}")
         for firing in explanation.firings:
             if firing.rule_id == "R16":
-                print(f"     {firing.note}")
+                print(f"     {format_firing(firing)}")
                 if args.verbose_all:
                     for conclusion in firing.conclusions:
                         print(f"       moved {conclusion!r}")

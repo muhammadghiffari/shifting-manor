@@ -4,7 +4,7 @@ Short answers with the file and line to open if asked to prove it.
 
 ### 1. Why forward chaining and not backward chaining?
 
-Forward chaining starts from what the agent perceives and derives everything that follows. Backward chaining would need a goal query and would repeatedly work back from “safe route”; the agent needs the whole closure anyway because a shift can invalidate and reopen beliefs. The chainer is fixed-priority and runs to a fixpoint in `shifting_manor/kb/forward.py:31-52`; the 24 rules are the table in `shifting_manor/kb/rules.py:348-378`.
+Forward chaining starts from what the agent perceives and derives everything that follows. Backward chaining would need a goal query and would repeatedly work back from “safe route”; the agent needs the whole closure anyway because a shift can invalidate and reopen beliefs. The chainer is fixed-priority and runs to a fixpoint in `shifting_manor/kb/forward.py:33-61`; the 24 rules are the table in `shifting_manor/kb/rules.py:361-390`.
 
 ### 2. What does exact enumeration add that the rules do not?
 
@@ -16,15 +16,15 @@ For pits, the code enumerates frontier combinations, weights each by `comb(unkno
 
 ### 4. What exactly does R16 do?
 
-On a `ShiftApplied` event, R16 applies the same cell mapping that the engine used to rotate the wing. It moves pit/ghost cell facts and rewrites PIT/GHOST constraints atomically, then records provenance for the proof tree (`shifting_manor/kb/base.py:197-258`). It is event-driven, not a normal rule body; the placeholder is `shifting_manor/kb/rules.py:364-369`. The walkthrough's `(3,1) -> (4,2)` example is in `docs/FORWARD_CHAINING_WALKTHROUGH.md`.
+On a `ShiftApplied` event, R16 applies the same cell mapping that the engine used to rotate the wing. It moves pit/ghost cell facts and rewrites PIT/GHOST constraints atomically (`shifting_manor/kb/base.py:197-271`), logs one aggregate R16 firing whose premise is `Rotated(wing, direction)`, and records a per-item provenance edge from the old fact/constraint to the new one. R16 therefore appears in the log and the KB tab stats. It is event-driven, not a normal rule body: the `Rule` entry at `shifting_manor/kb/rules.py:377-381` is marked `event_driven=True`, and `forward_chain` skips it. The walkthrough's `(3,1) -> (4,2)` example is in `docs/FORWARD_CHAINING_WALKTHROUGH.md`.
 
 ### 5. Why not reinforcement learning?
 
-The brief asks for a rule-based, explainable agent. This agent's action is selected from explicit derived facts and routes (`shifting_manor/agents/kb_agent.py:159-197`), and every conclusion has a firing and a proof tree. There is no training loop, reward model or learned weights to explain. RL was recorded as optional and out of scope in `DECISIONS.md:35`.
+The brief asks for a rule-based, explainable agent. This agent's action is selected from explicit derived facts and routes (`shifting_manor/agents/kb_agent.py:159-197`), and every conclusion has a firing and a proof tree. There is no training loop, reward model or learned weights to explain. RL was recorded as optional and out of scope in `DECISIONS.md:37`.
 
 ### 6. What is the difference between B2, B2b and B3?
 
-B2 is shift-blind: on a shift it keeps its old KB (`shifting_manor/kb/base.py:199-200`). B2b drops the facts and constraints that touch the rotated wing but does not transport the rest (`base.py:203-220`). B3 transports every affected fact and constraint (`base.py:221-258`). In Apprentice there are no shifts, so all three are identical.
+B2 is shift-blind: on a shift it keeps its old KB (`shifting_manor/kb/base.py:199-200`). B2b drops the facts and constraints that touch the rotated wing but does not transport the rest (`base.py:203-220`). B3 transports every affected fact and constraint (`base.py:221-271`). In Apprentice there are no shifts, so all three are identical.
 
 ### 7. Is B3 really better than B2?
 
@@ -40,15 +40,15 @@ No. B3 receives only percepts and events (`shifting_manor/agents/kb_agent.py:106
 
 ### 10. What happens to beliefs after a shift?
 
-The engine emits `ShiftApplied` with the exact mapping. B3's KB applies R16 before the next inference pass, moves durable pit/ghost facts and constraints, and keeps the moved facts' provenance (`shifting_manor/kb/base.py:172-188,197-258`). The Watch overlay marks destination cells as `stale` and draws the dashed transported outline (`shifting_manor/trace.py:185`, `shifting_manor/ui/watch.py:442-478`).
+The engine emits `ShiftApplied` with the exact mapping. B3's KB applies R16 before the next inference pass, moves durable pit/ghost facts and constraints, logs the aggregate firing, and keeps the moved facts' provenance (`shifting_manor/kb/base.py:172-188,197-271`). The Watch overlay marks destination cells as `stale` and draws the dashed transported outline (`shifting_manor/trace.py:185`, `shifting_manor/ui/watch.py:442-478`).
 
 ### 11. Why does the log not show every rule firing?
 
-Because many R08/R17 conclusions are re-derived every turn. `KnowledgeBase.run` separates fresh conclusions (`firings`) from the complete set (`all_firings`) (`shifting_manor/kb/base.py:266-320`). Watch AI builds `rows_new` from `new=True` only (`shifting_manor/ui/watch.py:105-108,788-795`). The complete set is kept for tests and debugging; the log filter UI was dropped for M5.
+Because many R08/R17 conclusions are re-derived every turn. `KnowledgeBase.run` separates fresh conclusions (`firings`) from the complete set (`all_firings`) (`shifting_manor/kb/base.py:280-334`). Watch AI builds `rows_new` from `new=True` only (`shifting_manor/ui/watch.py:105-108,788-795`). The complete set is kept for tests and debugging; the log filter UI was dropped for M5.
 
 ### 12. How does the “Why?” proof tree work?
 
-Every fact and constraint stores its first `Firing`; percepts are leaves. `TraceStore.proof` recursively expands `premises` until it reaches a percept/given leaf or a cycle (`shifting_manor/trace.py:327-358`). Clicking a room or log row opens the tree (`shifting_manor/ui/watch.py:262-321,890`). The `Ghost(2,2)` tree in the demo has four levels and includes the R16 hop.
+Every fact and constraint stores its first `Firing`; percepts and the R16 rotation event are leaves. `TraceStore.proof` recursively expands `premises` until it reaches a percept/given leaf or a cycle (`shifting_manor/trace.py:330-381`). Clicking a room or log row opens the tree (`shifting_manor/ui/watch.py:262-321,890`). The `Ghost(2,2)` tree in the demo has four levels and includes the R16 hop plus the `Rotated(1, cw)` event.
 
 ### 13. What are the main limits and assumptions?
 

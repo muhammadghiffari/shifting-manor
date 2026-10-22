@@ -268,6 +268,8 @@ def build_trace(
 # -- formatting shared by the log and proof panels ---------------------------
 def format_item(item: object) -> str:
     if isinstance(item, Fact):
+        if item.name == "Rotated" and isinstance(item.value, tuple) and len(item.value) == 2:
+            return f"Rotated({item.value[0]}, {item.value[1]})"
         if item.cell is not None:
             return f"{item.name}({item.cell[0]},{item.cell[1]})"
         if item.value is not None:
@@ -280,11 +282,10 @@ def format_item(item: object) -> str:
 
 
 def format_firing(firing: Firing) -> str:
-    if firing.rule_id == "R16" and firing.note:
-        return firing.note
     premises = ", ".join(format_item(p) for p in firing.premises)
     conclusions = ", ".join(format_item(c) for c in firing.conclusions)
-    return f"{firing.rule_id} {premises} => {conclusions}"
+    line = f"{firing.rule_id} {premises} => {conclusions}"
+    return f"{line} · {firing.note}" if firing.note else line
 
 
 def firing_cells(firing: Firing) -> tuple[Cell, ...]:
@@ -316,12 +317,14 @@ def _rule_detail(rule_id: str, turn: int, note: str = "", shift_index: int = 0) 
     if rule_id in ("PERCEPT", "GIVEN"):
         return f"{rule_id.lower()} at turn {turn}"
     if rule_id == "R16":
-        return f"R16 shift #{shift_index} at turn {turn}"
+        detail = f"R16 shift #{shift_index} at turn {turn}"
+        return f"{detail} · {note}" if note else detail
     from shifting_manor.kb.rules import RULE_BY_ID
 
     rule = RULE_BY_ID.get(rule_id)
     text = rule.description if rule is not None else rule_id
-    return f"{rule_id} at turn {turn} · {text}"
+    detail = f"{rule_id} at turn {turn} · {text}"
+    return f"{detail} · {note}" if note else detail
 
 
 def _item_node(
@@ -367,15 +370,6 @@ def _firing_node(
     node_id = counter.next()
     label = format_firing(firing)
     cells = firing_cells(firing)
-    if firing.rule_id == "R16":
-        return ProofNode(
-            node_id,
-            label,
-            _rule_detail("R16", firing.turn, firing.note, firing.shift_index),
-            cells,
-            (),
-            True,
-        )
     children = tuple(_item_node(p, step, counter, seen) for p in firing.premises)
     return ProofNode(
         node_id,

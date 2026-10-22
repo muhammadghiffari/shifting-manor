@@ -58,13 +58,13 @@ R16 rewrites every pit/ghost fact and every PIT/GHOST constraint through that ma
 | Before | `GHOST{(1,1),(2,0),(2,2),(3,1)}`, `NoPit(3,1)` |
 | New after | `GHOST{(1,1),(2,0),(2,2),(4,2)}`, `NoPit(4,2)`, `NoPit(3,2)`, `NoGhost(3,2)`; plus `Safe(3,2)` from R08 and the normal observation facts |
 
-The logged R16 line is one aggregate event:
+The logged R16 line is one aggregate event with the rotation as its premise:
 
 ```
-R16 transported 3 facts (wing 1, cw)
+R16 Rotated(1, cw) => GHOST{(1,1),(2,0),(2,2),(4,2)}, NoGhost(3,2), NoPit(3,2), NoPit(4,2) · transported 3 facts (wing 1, cw)
 ```
 
-The three **facts** are the moved cell facts. The constraint is rewritten as well but is shown in the same firing's conclusion tuple. The `(3,1) -> (4,2)` example is the one that matters below.
+The three **facts** are the moved cell facts. The constraint is rewritten as well but is shown in the same firing's conclusion tuple. `Rotated(1, cw)` is stored as a `GIVEN` leaf, and every moved fact/constraint gets its own R16 provenance edge whose premises are the rotation and the old item. That is how the proof below can show the move and still continue into the pre-shift observation. The `(3,1) -> (4,2)` example is the one that matters below.
 
 ### T09 — one candidate becomes known
 
@@ -133,6 +133,7 @@ This is the exact proof tree stored in the trace:
 ```
 Ghost(2,2)                                  R07, one candidate left
 └── GHOST{(1,1),(2,0),(2,2),(4,2)}          R16 shift #1
+    ├── Rotated(1, cw)                      event, T08
     └── GHOST{(1,1),(2,0),(2,2),(3,1)}      R05, Chill(2,1)
         └── Chill(2,1)                       percept, T07
 ```
@@ -166,7 +167,7 @@ The same code path is used for pits, treasure and goals. Watch AI does not rerun
 ## 4. Files to read next
 
 - `shifting_manor/kb/rules.py:62-101` — R05, R06 and R07, the constraint-to-fact rules.
-- `shifting_manor/kb/base.py:197-258` — R16 transport and provenance.
-- `shifting_manor/kb/forward.py:31-52` — the fixed-priority fixpoint loop.
-- `shifting_manor/trace.py:142-265` — how this run is frozen into `StepTrace` records.
+- `shifting_manor/kb/base.py:197-271` — R16 transport, aggregate firing and per-item provenance.
+- `shifting_manor/kb/forward.py:33-61` — the fixed-priority fixpoint loop and the event-driven R16 skip.
+- `shifting_manor/trace.py:142-266` — how this run is frozen into `StepTrace` records.
 - `docs/CODE_TOUR.md` — the full reading order.

@@ -83,6 +83,55 @@ def test_log_rows_support_new_only_and_all() -> None:
         assert row.firing.rule_id in row.text
 
 
+def test_r16_is_a_logged_derivation_and_a_proof_edge() -> None:
+    store = build_trace("explorer", "HAUNT-4F2A", "b3")
+    step = store.steps[8]
+    r16 = next(firing for firing in step.firings if firing.rule_id == "R16")
+    assert r16.premises == (Fact("Rotated", value=(1, "cw")),)
+    assert format_firing(r16).startswith("R16 Rotated(1, cw) =>")
+    assert "transported 3 facts (wing 1, cw)" in format_firing(r16)
+
+    counts, last = store.rule_stats(8)
+    assert counts["R16"] == 1
+    assert last["R16"] is r16
+
+    node = store.proof(8, Fact("Safe", (3, 2)))
+
+    def walk(item):
+        yield item
+        for child in item.children:
+            yield from walk(child)
+
+    labels = {item.label for item in walk(node)}
+    assert "Safe(3,2)" in labels
+    assert "NoPit(3,2)" in labels
+    assert "NoGhost(3,2)" in labels
+    assert "NoPit(3,0)" in labels
+    assert "NoGhost(3,0)" in labels
+    assert "NoBreeze(2,0)" in labels
+    assert "NoChill(2,0)" in labels
+    assert "Rotated(1, cw)" in labels
+    assert any("moved from (3, 0) by shift #1" in item.detail for item in walk(node))
+    assert any(item.leaf and "percept at turn 6" in item.detail for item in walk(node))
+
+    log_node = store.proof(8, r16)
+    assert [child.label for child in log_node.children] == ["Rotated(1, cw)"]
+    assert log_node.children[0].detail == "given at turn 8"
+
+
+def test_r17_log_line_includes_the_safe_path() -> None:
+    store = build_trace("explorer", "HAUNT-4F2A", "b3")
+    firing = next(
+        firing
+        for step in store.steps
+        for firing in step.firings
+        if firing.rule_id == "R17" and " -> " in firing.note
+    )
+    text = format_firing(firing)
+    assert "via safe path:" in text
+    assert " -> " in text
+
+
 def test_shift_is_a_stored_step_with_stale_beliefs() -> None:
     store = build_trace("explorer", "HAUNT-4F2A", "b3")
     shifts = [step for step in store.steps if step.shift is not None]

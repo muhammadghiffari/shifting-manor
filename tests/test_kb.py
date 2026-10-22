@@ -307,6 +307,19 @@ def test_second_turn_logs_only_new_derivations():
     assert set(kb.last_rederivations_by_rule) <= {r.id for r in RULES}
 
 
+def test_r17_logs_the_safe_path_it_used():
+    kb = fresh_kb()
+    s_r17(kb)
+    kb.run()
+    firing = next(
+        f for f in kb.log if f.rule_id == "R17" and Fact("Reachable", (2, 0)) in f.conclusions
+    )
+    assert firing.note == "via safe path: (0,0) -> (1,0) -> (2,0)"
+    assert Fact("Safe", (0, 0)) not in firing.premises
+    assert Fact("At", (0, 0)) in firing.premises
+    assert Fact("Safe", (2, 0)) in firing.premises
+
+
 def test_provenance_points_from_fact_to_rule_and_percept_leaf():
     kb = fresh_kb()
     kb.observe(Percepts())
@@ -323,12 +336,25 @@ def test_provenance_points_from_fact_to_rule_and_percept_leaf():
 
 def test_r16_logs_one_aggregate_line_and_keeps_provenance():
     kb = fresh_kb()
-    add(kb, Fact("Pit", (3, 0)), Fact("NoPit", (3, 1)))
+    mapping = rotation_mapping(1, "cw", 6)
+    old_constraint = Constraint("GHOST", frozenset({(3, 0), (4, 1)}))
+    add(kb, Fact("Pit", (3, 0)), Fact("NoPit", (3, 1)), old_constraint)
     kb.run()
-    kb.apply_shift(1, "cw", rotation_mapping(1, "cw", 6))
+    kb.apply_shift(1, "cw", mapping)
 
     r16 = [f for f in kb.log if f.rule_id == "R16"][-1]
-    assert r16.note == "R16 transported 2 facts (wing 1, cw)"
-    moved = Fact("Pit", rotation_mapping(1, "cw", 6)[(3, 0)])
-    assert kb.provenance[moved].rule_id == "R16"
-    assert Fact("Pit", (3, 0)) in kb.provenance[moved].premises
+    assert r16.note == "transported 2 facts (wing 1, cw)"
+    assert r16.premises == (Fact("Rotated", value=(1, "cw")),)
+    assert r16.shift_index == 1
+    moved = Fact("Pit", mapping[(3, 0)])
+    moved_firing = kb.provenance[moved]
+    assert moved_firing.rule_id == "R16"
+    assert moved_firing.premises == (r16.premises[0], Fact("Pit", (3, 0)))
+    assert moved_firing.shift_index == 1
+    moved_constraint = Constraint(
+        "GHOST", frozenset(mapping.get(c, c) for c in old_constraint.cells)
+    )
+    constraint_firing = kb.constraint_provenance[moved_constraint]
+    assert constraint_firing.rule_id == "R16"
+    assert constraint_firing.premises == (r16.premises[0], old_constraint)
+    assert constraint_firing.shift_index == 1
