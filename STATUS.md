@@ -1,6 +1,6 @@
 # STATUS
 
-_Last updated by:_ coding agent · _Date:_ 2026-10-22 (overnight run)
+_Last updated by:_ coding agent · _Date:_ 2026-10-22 (M4.1 merged, M5 next)
 
 ## Done
 
@@ -12,11 +12,11 @@ _Last updated by:_ coding agent · _Date:_ 2026-10-22 (overnight run)
   - Bugs found by the sim and fixed at the root: R01 was re-deriving `NoPit`/`NoGhost` from durable `Visited` facts after a shift moved a hazard into an old room; enumeration also treated historical `Visited` as current `NoPit`; fully-resolved constraints were misreported as inconsistent; the oracle never applied `ShiftApplied`, so it planned on the pre-shift map.
   - B3 deaths in the 200-seed suite are all R22 forced guesses (no safe unvisited room), never a known-`Unsafe`/`Pit`/`Ghost` step.
 - **M4 — Play mode UI** (PR #13, squash-merged `fb5ed75`, tag `m4`). Title, mode select, play board with lantern fog and wing runes, Senses panel, HUD with shift clock, right-click/key marks, pause, shift animation with rotating marks and dust, and result screen with stars/stats/seed and Replay/New seed/Menu. Keyboard and mouse both work. Screenshots in `docs/screens/` (title, mode select, board with fog, shift mid-frame, pause, result).
-- **M4.1 — Hardening** (branch `fix/m4.1-hardening`, PR #14, tag `m4.1`). Entry point fixed (`python -m shifting_manor` works; default windowed with `--fullscreen` opt-in; `--mode/--seed/--no-audio/--frames/--screenshot` forwarded), real subprocess tests with SDL dummy drivers, and a CI 30-frame smoke step. Inference logging is now a per-turn delta against the transported previous closure; re-derivations have separate debug counters; provenance `Fact -> first Firing` with percept leaves exists for the M5 proof tree; R16 logs one aggregate line. Evaluation now has Wilson 95% CIs, paired McNemar tests, gamble risk/outcome logging and calibration, 1000 tuning + 1000 reporting seeds per mode, and `docs/EVALUATION.md`. Stars are relative to oracle par (3★ at par + 15, 2★ slower treasure escape, 1★ empty-handed).
+- **M4.1 — Hardening** (PR #14, squash-merged `594b3d8`, tag `m4.1`). Entry point fixed (`python -m shifting_manor` works; default windowed with `--fullscreen` opt-in; `--mode/--seed/--no-audio/--frames/--screenshot` forwarded), real subprocess tests with SDL dummy drivers, and a CI 30-frame smoke step. Inference logging is now a per-turn delta against the transported previous closure; re-derivations have separate debug counters; provenance `Fact -> first Firing` with percept leaves exists for the M5 proof tree; R16 logs one aggregate line. Evaluation now has Wilson 95% CIs, paired McNemar tests, gamble risk/outcome logging and calibration, 1000 tuning + 1000 reporting seeds per mode, and `docs/EVALUATION.md`. Stars are relative to oracle par (3★ at par + 15, 2★ slower treasure escape, 1★ empty-handed).
 
 ## In progress
 
-- M4.1 is complete on its branch and ready to merge; M5 Watch AI starts only after the M4.1 PR is green and merged. Stopped before M6 as instructed.
+- M5 Watch AI on branch `feat/m5-watch-ai`, starting from tag `m4.1`. M6 remains out of scope.
 
 ## Blocked
 
