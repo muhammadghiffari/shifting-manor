@@ -1,12 +1,27 @@
 # Code tour
 
-This is the reading order for someone who has to explain the project, not just run it. Every path and line number below is from the M5 tree (`feat/m5-watch-ai`). Read top to bottom; each section ends with one real excerpt and a plain-language line-by-line explanation.
+This is the reading order for someone who has to explain the project, not just run it. Every path and line number below is from the current M5 tree. Read top to bottom; each section ends with one real excerpt and a plain-language line-by-line explanation.
 
 Rules of the codebase:
 
 - Only `shifting_manor/ui/` imports pygame. Engine, KB, agents and sim are headless and tested that way.
 - `shifting_manor/engine/types.py` is the shared vocabulary: `Cell`, `Dir`, `Move`, `CastCharm`, `Leave`, `Percepts` and the event types. `Percepts` is lines 41–58; `GameInfo` is 61–72.
 - A `Firing.turn` is **0-based**. The Watch UI displays `turn + 1`.
+
+## 0. Rules vs planner logic
+
+Do not call every IF–THEN-looking thing a rule. The split is deliberate:
+
+| Part | Where | What runs it |
+|---|---|---|
+| R01–R15, R17–R24 | `shifting_manor/kb/rules.py` | The forward chainer in `kb/forward.py`. Each rule has a match function and a conclusion function. |
+| R16 | `KnowledgeBase.apply_shift` (`kb/base.py:197-271`) plus the pure mapping in `kb/transport.py` | A `ShiftApplied` event. The `Rule` entry (`rules.py:377-381`) is metadata marked `event_driven=True`; `forward_chain` skips it. |
+| Exact risk enumeration | `shifting_manor/kb/enumerate.py` | Called by the agent after the rule closure, not by a rule. |
+| A* routing | `shifting_manor/agents/planner.py` | Called by the agent when it needs a route. |
+| Gamble choice | `shifting_manor/agents/kb_agent.py::_gamble_target` (`265`) using `planner.expected_utility` | Planner code chooses the target and first risky step. R22 only says “a gamble is needed” and lists candidates. |
+| Final action priority | `shifting_manor/agents/kb_agent.py::_decide` (`159`) | Planner/agent code, not the chainer. |
+
+R16 is the one rule that changes state instead of only deriving a new fact. It is still logged as an R16 `Firing` with `Rotated(wing, direction)` as its premise, and it counts in the KB tab stats. Each moved fact or constraint gets its own R16 provenance edge whose premises are the rotation and the old item, which is why the proof tree can show both “moved from (3,0)” and the pre-shift observation.
 
 ## 1. `shifting_manor/engine/game.py` — the rules of the manor
 
@@ -121,9 +136,9 @@ Why the distinction matters: `Fact("NoPit", (2,2))` and `Constraint("PIT", {...}
 
 ## 4. `shifting_manor/kb/rules.py` — R01–R24
 
-**Purpose.** Each of the 24 PRD rules is a pair of functions: `_rNN` finds bindings that match the current KB, and `_rNN_out` returns the conclusions for one binding. `RULES` (line 348) is the fixed-priority list the forward chainer consumes.
+**Purpose.** Each of the 24 PRD rules is a pair of functions: `_rNN` finds bindings that match the current KB, and `_rNN_out` returns the conclusions for one binding. `RULES` (line 361) is the fixed-priority list the forward chainer consumes.
 
-**Key functions.** `_r01` (23), `_r04` (53), `_r05` (62), `_r06` (72), `_r07` (87), `_r08` (104), `_r15` (199), `_r17` (215), `_r20` (260), `_r21` (281), `_r22` (307), `_r23` (321), `_r24` (334), and the `RULES` table (348–378). R16 is deliberately a placeholder at 364–369 because transport is event-driven.
+**Key functions.** `_r01` (23), `_r04` (53), `_r05` (62), `_r06` (72), `_r07` (87), `_r08` (104), `_r15` (199), `_r17` (215), `_r20` (273), `_r21` (294), `_r22` (320), `_r23` (334), `_r24` (347), and the `RULES` table (361–390). R16 is the event-driven exception at 377–381: it has no match/conclusion pair and is skipped by the chainer. Its transport code lives in `kb/base.py:197-271` and `kb/transport.py`.
 
 Excerpt, R07 (lines 87–101):
 
@@ -152,15 +167,15 @@ def _r07_out(kb: KnowledgeBase, b: Binding):
 - `96` keeps the whole constraint as the premise, so the proof tree can show where the disjunction came from.
 - `100–101` converts the one remaining candidate into a ground `Ghost(cell)` fact.
 
-R06 is the same pattern for pits. R08 combines `NoPit` and `NoGhost` into `Safe`. R16’s description is in the table but its body is empty because the KB calls `apply_shift` directly; that keeps transport atomic and lets it update both facts and constraints.
+R06 is the same pattern for pits. R08 combines `NoPit` and `NoGhost` into `Safe`. R16’s description is in the table, but its body is not a normal match/conclude pair: the KB calls `apply_shift` directly, which keeps transport atomic and lets it update both facts and constraints. R17’s log/proof note records the actual safe path it used, not just the endpoints.
 
 ## 5. `shifting_manor/kb/forward.py` — the engine of the inference
 
 **Purpose.** This is the forward chainer: fixed rule order, repeat until nothing new is added. It returns every firing, including conclusions that the KB later classifies as re-derivations.
 
-**Key functions.** `Binding` (18), `Rule` (23), `forward_chain` (31). `MAX_ITERATIONS = 100` is the loop guard.
+**Key functions.** `Binding` (18), `Rule` (24), `forward_chain` (33). `MAX_ITERATIONS = 100` is the loop guard.
 
-Excerpt (lines 31–52):
+Excerpt (lines 33–61):
 
 ```python
 def forward_chain(kb: KnowledgeBase, rules: Iterable[Rule], turn: int) -> list[Firing]:
@@ -170,8 +185,9 @@ def forward_chain(kb: KnowledgeBase, rules: Iterable[Rule], turn: int) -> list[F
     for _ in range(MAX_ITERATIONS):
         changed = False
         for rule in rule_list:
-            if rule.id == "R16":
-                continue  # event-driven transport, logged by KnowledgeBase
+            if rule.event_driven:
+                continue  # R16 transport is logged by KnowledgeBase.apply_shift
+            assert rule.matches is not None and rule.conclusions is not None
             for binding in list(rule.matches(kb)):
                 conclusions: list[Fact | Constraint] = []
                 for item in rule.conclusions(kb, binding):
@@ -179,7 +195,13 @@ def forward_chain(kb: KnowledgeBase, rules: Iterable[Rule], turn: int) -> list[F
                         conclusions.append(item)
                 if conclusions:
                     firings.append(
-                        Firing(rule.id, tuple(binding.premises), tuple(conclusions), turn)
+                        Firing(
+                            rule.id,
+                            tuple(binding.premises),
+                            tuple(conclusions),
+                            turn,
+                            note=binding.note,
+                        )
                     )
                     changed = True
         if not changed:
@@ -187,19 +209,20 @@ def forward_chain(kb: KnowledgeBase, rules: Iterable[Rule], turn: int) -> list[F
     raise AssertionError("forward chaining did not reach a fixpoint")
 ```
 
-- `34` fixes the priority order once. R01 runs before R24 in every pass.
-- `35` is the outer fixpoint loop. A new fact can enable an earlier rule, so the chainer runs another full pass.
-- `37–39` skips R16: the KB already applied transport before `run()` was called.
-- `40` copies matches into a list; `kb.add` can change the KB while the rule is firing, so iterating a live view would be unsafe.
-- `42–44` adds every conclusion unless the KB already has it. `kb.add` returns `False` for duplicates, which is what prevents infinite loops.
-- `45–49` records one `Firing` only if at least one conclusion was new, and marks the pass dirty.
-- `50–51` a clean pass is the fixpoint. `52` turns a bug (a rule that keeps adding) into a loud failure instead of a hang.
+- `37` is the outer fixpoint loop. A new fact can enable an earlier rule, so the chainer runs another full pass.
+- `40–41` skips R16: the KB already applied transport before `run()` was called.
+- `42` is a guard: every normal rule must have both functions. R16 is the only event-driven rule.
+- `43` copies matches into a list; `kb.add` can change the KB while the rule is firing, so iterating a live view would be unsafe.
+- `45–47` adds every conclusion unless the KB already has it. `kb.add` returns `False` for duplicates, which is what prevents infinite loops.
+- `50–57` records one `Firing` only if at least one conclusion was new. `Binding.note` (line 22) is copied into the firing; R17 uses it for “via safe path: …”.
+- `58` marks the pass dirty.
+- `59–60` a clean pass is the fixpoint. `61` turns a bug (a rule that keeps adding) into a loud failure instead of a hang.
 
 ## 6. `shifting_manor/kb/base.py` — storage, observation, transport, delta
 
 **Purpose.** `KnowledgeBase` is the fact store plus the lifecycle: receive events, apply R16, observe one room, run the chainer, and label conclusions as new or re-derived. It also keeps first-provenance for every fact and constraint.
 
-**Key functions.** `add` (127), `observe` (150), `on_events` (172), `apply_shift` (197), `_transport_fact` (259), `run` (266), `belief_labels` (394).
+**Key functions.** `add` (127), `observe` (150), `on_events` (172), `apply_shift` (197), `_transport_fact` (274), `run` (280), `belief_labels` (408).
 
 Excerpt, R16 transport (lines 221–245):
 
@@ -224,8 +247,10 @@ self.base = set(new_base)
 self.constraints = set(new_constraints)
 self.derived_prev = {self._transport_fact(f, mapping) for f in self.derived_prev}
 premise = Fact("Rotated", value=(wing, direction))
+# The rotation event is a leaf: it comes from the engine, not a rule.
+self.provenance.setdefault(premise, Firing("GIVEN", (), (premise,), self.turn))
 count = len(moved_pairs)
-note = f"R16 transported {count} fact{'' if count == 1 else 's'} (wing {wing}, {direction})"
+note = f"transported {count} fact{'' if count == 1 else 's'} (wing {wing}, {direction})"
 firing = Firing("R16", (premise,), changed, self.turn, note, shift_index=self.shift_count)
 ```
 
@@ -233,11 +258,12 @@ firing = Firing("R16", (premise,), changed, self.turn, note, shift_index=self.sh
 - `224–230` record only the cell facts whose cell actually changed; these are the “N facts” in the log line.
 - `231–236` compute the actual change set for the firing, sorted for reproducible output.
 - `237–239` install the transported state and move the previous closure the same way, so the delta comparison is fair.
-- `240–245` create one R16 `Firing` with the rotation premise, `shift_index`, and the aggregate human note. `pending_firings` is merged into `step.firings` so Watch AI can stream it.
+- `240–245` build the aggregate R16 `Firing`: premise `Rotated(wing, direction)`, all changed conclusions, `shift_index`, and a human note. `pending_firings` is merged into `step.firings`, so Watch AI streams it and the KB tab counts it.
+- `248–271` write a per-item R16 provenance edge for every moved fact and constraint. The premises are `(Rotated, old item)`, so a proof can show both the shift event and the pre-shift observation.
 
 Early in the same method, `variant == "b2"` returns immediately (shift-blind), and `variant == "b2b"` drops only facts/constraints touching the rotated wing. B3 is the full transport path.
 
-`run` (266–320) resets `derived` each turn, calls `forward_chain`, compares each conclusion with `derived_prev`, puts only fresh items into `firings`, and puts the complete set into `all_firings`. The UI uses `firings`; tests use `all_firings` to check re-derivations. Durable conclusions are moved into `base` at 312–317, so they survive the next turn.
+`run` (280–334) resets `derived` each turn, calls `forward_chain`, compares each conclusion with `derived_prev`, puts only fresh items into `firings`, and puts the complete set into `all_firings`. The UI uses `firings`; tests use `all_firings` to check re-derivations. Durable conclusions are moved into `base` at 326–331, so they survive the next turn.
 
 ## 7. `shifting_manor/kb/enumerate.py` — exact risk
 
@@ -409,7 +435,7 @@ while not game.state.done and steps < max_steps:
 
 **Purpose.** `build_trace` replays one real game and stores everything the UI needs: every step's firings, beliefs, facts, gamble, action, thought and shift mapping. `TraceStore.proof` turns the stored provenance into a tree; `format_firing` produces the exact log line.
 
-**Key functions.** `StepTrace` (48), `TraceStore` (95), `log_rows` (114), `proof` (130), `build_trace` (142), `format_firing` (282), `firing_cells` (290), `_item_node` (327), `_firing_node` (361).
+**Key functions.** `StepTrace` (48), `TraceStore` (95), `log_rows` (114), `proof` (130), `build_trace` (142), `format_item` (269), `format_firing` (284), `firing_cells` (291), `_item_node` (330), `_firing_node` (364).
 
 Excerpt, the capture inside `build_trace` (lines 161–210):
 
@@ -475,6 +501,8 @@ while not game.state.done and steps_taken < max_steps:
 
 The UI never reruns the agent. It reads these frozen records and draws them. That is what “Replaying the agent's actual trace” means.
 
+`format_firing` (284) renders every firing in the same shape: `rule premises => conclusions · note`. R16's note says how many facts moved, and R17's note gives the actual safe path, so neither line is misleading. The proof builder starts from the stored provenance and stops at `PERCEPT`/`GIVEN` leaves, cycles, or items with no recorded derivation.
+
 ## 12. `shifting_manor/ui/watch.py` — playback, log, overlay, proof
 
 **Purpose.** `WatchView` owns the Watch AI screen: autoplay, speed, tabs, belief overlay, live delta log, rules list and the proof overlay. It is deliberately a view; it does not inference or mutate the game.
@@ -513,7 +541,7 @@ def update(self, dt: float) -> None:
 - `178–179` call the optional callback when a new line appears. The app currently passes none; audio polish is explicitly out of scope.
 - `180–183` when the step's duration is over, move to the next step or stop at the last one. The app's demo loop watches `finished()` and waits 3 seconds before rebuilding the next trace.
 
-The log at 733–786 lays out only `rows_new`, i.e. `step.firings` filtered to `new=True`. The `_visible_log` slice at 788–795 is the delta stream: previous turns are complete, the current turn grows line by line. The board's gold highlight comes from `firing_cells` (trace.py:290), not from a hard-coded coordinate.
+The log at 733–786 lays out only `rows_new`, i.e. `step.firings` filtered to `new=True`. The `_visible_log` slice at 788–795 is the delta stream: previous turns are complete, the current turn grows line by line. The board's gold highlight comes from `firing_cells` (trace.py:291), not from a hard-coded coordinate.
 
 `_open_room_proof` (315) first finds a fact for the clicked room, preferring `Safe`, `Pit`, `Ghost`, `NoPit`, `NoGhost`, `NoTreasure`, then `Visited`, and asks `TraceStore.proof`. The proof overlay draws the resulting `ProofNode` tree and lets a node expand if the chain is deeper than six levels.
 
@@ -551,8 +579,8 @@ parser.add_argument("--demo", action="store_true", help="start Watch AI and loop
 
 1. `engine/types.py:16-72` and `engine/game.py:149-164` — what a turn is.
 2. `kb/facts.py:52-84` and `kb/rules.py:87-101` — what a fact and a rule look like.
-3. `kb/forward.py:31-52` — how rules combine.
-4. `kb/base.py:197-320` — transport and delta.
+3. `kb/forward.py:33-61` — how rules combine (and why R16 is skipped).
+4. `kb/base.py:197-334` — event-driven transport and delta.
 5. `kb/enumerate.py:60-121` — where probabilities come from.
 6. `agents/planner.py:59-79` and `agents/kb_agent.py:106-131` — how a probability becomes a move.
 7. `trace.py:161-235` and `ui/watch.py:164-183` — how the demo replays it.

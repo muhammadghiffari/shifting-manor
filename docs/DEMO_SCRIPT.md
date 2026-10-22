@@ -70,6 +70,7 @@ Pause when the header reads **TURN 14 / 34**. This is the KB's 0-based T13; the 
 ```
 Ghost(2,2)                              R07, one candidate left
 └── GHOST{(1,1),(2,0),(2,2),(4,2)}      R16 shift #1
+    ├── Rotated(1, cw)                   event, T08
     └── GHOST{(1,1),(2,0),(2,2),(3,1)}  R05, Chill(2,1)
         └── Chill(2,1)                   percept, T07
 ```
@@ -90,9 +91,9 @@ Say:
 
 > Solid marks are certain: safe, pit or ghost. Translucent cells with a percentage are risk beliefs from exact enumeration; the percentage is the combined pit-or-ghost risk. The gold dashed outlines are beliefs that were transported through the rotation. A dashed outline is not “unknown”; it means this room's belief moved with the wing.
 
-Point at the **R16 transported 3 facts (wing 1, cw)** line.
+Point at the **R16 Rotated(1, cw) => …** line.
 
-> R16 is not a normal rule match. It is event-driven. It rewrites the PIT and GHOST constraints and the cell facts atomically, and keeps provenance so this proof tree can be reconstructed later.
+> R16 is not a normal rule match. It is event-driven. It rewrites the PIT and GHOST constraints and the cell facts atomically, logs the rotation as its premise, and counts in the KB tab. Each moved item keeps a provenance edge back to the old one, so this proof tree can be reconstructed later.
 
 ## 5:15–6:00 — Rules tab
 
@@ -154,7 +155,7 @@ python -m shifting_manor.cli --agent b3 --mode explorer --seed HAUNT-4F2A --verb
 sed -n '/^T07/,/^T14/p' /tmp/haunt_trace.txt
 ```
 
-The CLI prints `T07` … `T13` with the same rule ids and conclusions. It also prints the `R16 transported ...` line. The turn numbers there are 0-based, matching the KB.
+The CLI prints `T07` … `T13` with the same rule ids and conclusions. It also prints the `R16 Rotated(1, cw) => ...` line. The turn numbers there are 0-based, matching the KB.
 
 ### B. The GUI is too slow or a click is missed
 
@@ -162,7 +163,7 @@ Use the screenshots in `docs/screens/`:
 
 - `watch_ai_overlay.png` — belief overlay and the live trace at TURN 14.
 - `watch_ai_log.png` — inference log, new firings only.
-- `watch_ai_why.png` — the Ghost(2,2) proof tree with the R16 hop.
+- `watch_ai_why.png` — the Ghost(2,2) proof tree with the R16 hop and `Rotated(1, cw)` leaf.
 - `watch_ai_kb.png` — the rules tab.
 - `watch_ai_shift_moment.png` — the first shift, dashed transported beliefs.
 

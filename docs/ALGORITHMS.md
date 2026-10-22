@@ -86,7 +86,7 @@ The last term is a cheap proxy for information value (a room with many unknown n
 
 ## 5. Knowledge transport (R16)
 
-When a wing rotates by a known mapping `m: cell -> cell` (the wing's rotation), every stored pit/ghost fact `X(c)` becomes `X(m(c))`, and every pit/ghost constraint set `S` becomes `{m(c) for c in S}`. Treasure facts are untouched because the treasure does not rotate. Nothing is guessed: rotations are deterministic and announced, so beliefs can be moved exactly.
+When a wing rotates by a known mapping `m: cell -> cell` (the wing's rotation), every stored pit/ghost fact `X(c)` becomes `X(m(c))`, and every pit/ghost constraint set `S` becomes `{m(c) for c in S}`. Treasure facts are untouched because the treasure does not rotate. Nothing is guessed: rotations are deterministic and announced, so beliefs can be moved exactly. The KB records one aggregate R16 firing with `Rotated(wing, direction)` as its premise, plus a per-item provenance edge from each old fact/constraint to its new one.
 
 Two weaker variants exist as baselines to show the value of doing it right: B2 (ignores the shift, so it is confidently wrong) and B2b (forgets the wing, so it is safe but wasteful).
 

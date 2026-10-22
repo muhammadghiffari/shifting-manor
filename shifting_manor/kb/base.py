@@ -238,14 +238,23 @@ class KnowledgeBase:
         self.constraints = set(new_constraints)
         self.derived_prev = {self._transport_fact(f, mapping) for f in self.derived_prev}
         premise = Fact("Rotated", value=(wing, direction))
+        # The rotation event is a leaf: it comes from the engine, not a rule.
+        self.provenance.setdefault(premise, Firing("GIVEN", (), (premise,), self.turn))
         count = len(moved_pairs)
-        note = f"R16 transported {count} fact{'' if count == 1 else 's'} (wing {wing}, {direction})"
+        note = f"transported {count} fact{'' if count == 1 else 's'} (wing {wing}, {direction})"
         firing = Firing("R16", (premise,), changed, self.turn, note, shift_index=self.shift_count)
         self.pending_firings.append(firing)
         self.log.append(firing)
+        # Each moved item gets a per-item R16 edge so the proof tree can show
+        # both the rotation and the old fact/constraint it came from.
         for old, new in moved_pairs:
             self.provenance[new] = Firing(
-                "R16", (old,), (new,), self.turn, note, shift_index=self.shift_count
+                "R16",
+                (premise, old),
+                (new,),
+                self.turn,
+                note=f"moved from {old.cell} by shift #{self.shift_count}",
+                shift_index=self.shift_count,
             )
         for old in old_constraints:
             if old.kind not in ("PIT", "GHOST"):
@@ -253,7 +262,12 @@ class KnowledgeBase:
             new = Constraint(old.kind, frozenset(mapping.get(c, c) for c in old.cells))
             if new != old:
                 self.constraint_provenance[new] = Firing(
-                    "R16", (old,), (new,), self.turn, note, shift_index=self.shift_count
+                    "R16",
+                    (premise, old),
+                    (new,),
+                    self.turn,
+                    note=f"moved by shift #{self.shift_count}",
+                    shift_index=self.shift_count,
                 )
 
     @staticmethod

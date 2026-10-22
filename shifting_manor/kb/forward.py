@@ -18,14 +18,16 @@ MAX_ITERATIONS = 100
 class Binding:
     premises: tuple[object, ...]
     data: dict[str, object] = field(default_factory=dict)
+    note: str = ""
 
 
 @dataclass(frozen=True)
 class Rule:
     id: str
     description: str
-    matches: Callable[[KnowledgeBase], Iterable[Binding]]
-    conclusions: Callable[[KnowledgeBase, Binding], Iterable[Fact | Constraint]]
+    matches: Callable[[KnowledgeBase], Iterable[Binding]] | None = None
+    conclusions: Callable[[KnowledgeBase, Binding], Iterable[Fact | Constraint]] | None = None
+    event_driven: bool = False
 
 
 def forward_chain(kb: KnowledgeBase, rules: Iterable[Rule], turn: int) -> list[Firing]:
@@ -35,8 +37,9 @@ def forward_chain(kb: KnowledgeBase, rules: Iterable[Rule], turn: int) -> list[F
     for _ in range(MAX_ITERATIONS):
         changed = False
         for rule in rule_list:
-            if rule.id == "R16":
-                continue  # event-driven transport, logged by KnowledgeBase
+            if rule.event_driven:
+                continue  # R16 transport is logged by KnowledgeBase.apply_shift
+            assert rule.matches is not None and rule.conclusions is not None
             for binding in list(rule.matches(kb)):
                 conclusions: list[Fact | Constraint] = []
                 for item in rule.conclusions(kb, binding):
@@ -44,7 +47,13 @@ def forward_chain(kb: KnowledgeBase, rules: Iterable[Rule], turn: int) -> list[F
                         conclusions.append(item)
                 if conclusions:
                     firings.append(
-                        Firing(rule.id, tuple(binding.premises), tuple(conclusions), turn)
+                        Firing(
+                            rule.id,
+                            tuple(binding.premises),
+                            tuple(conclusions),
+                            turn,
+                            note=binding.note,
+                        )
                     )
                     changed = True
         if not changed:
