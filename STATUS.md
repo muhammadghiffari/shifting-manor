@@ -1,6 +1,6 @@
 # STATUS
 
-_Last updated by:_ coding agent · _Date:_ 2026-10-22 (M5 merged, tag `m5`; explainability review fixes pending merge)
+_Last updated by:_ coding agent · _Date:_ 2026-10-22 (M5 merged, tag `m5`; M5.1 explainability review fixes merged in PR #16)
 
 ## Done
 
@@ -14,11 +14,11 @@ _Last updated by:_ coding agent · _Date:_ 2026-10-22 (M5 merged, tag `m5`; expl
 - **M4 — Play mode UI** (PR #13, squash-merged `fb5ed75`, tag `m4`). Title, mode select, play board with lantern fog and wing runes, Senses panel, HUD with shift clock, right-click/key marks, pause, shift animation with rotating marks and dust, and result screen with stars/stats/seed and Replay/New seed/Menu. Keyboard and mouse both work. Screenshots in `docs/screens/` (title, mode select, board with fog, shift mid-frame, pause, result).
 - **M4.1 — Hardening** (PR #14, squash-merged `594b3d8`, tag `m4.1`). Entry point fixed (`python -m shifting_manor` works; default windowed with `--fullscreen` opt-in; `--mode/--seed/--no-audio/--frames/--screenshot` forwarded), real subprocess tests with SDL dummy drivers, and a CI 30-frame smoke step. Inference logging is now a per-turn delta against the transported previous closure; re-derivations have separate debug counters; provenance `Fact -> first Firing` and `Constraint -> Firing` exists for the M5 proof tree; R16 logs one aggregate line. Stars are relative to oracle par (3★ at par + 15, 2★ slower treasure escape, 1★ empty-handed).
 - **M5 — Watch AI** (PR #15, squash-merged `1a52949`, tag `m5`). Mode select now has **WATCH AI** with an agent picker (B3 default, B2, B2b). The replay uses the real stored trace: full-game board, delta-only inference log, gold highlights on touched cells, belief overlay (certain solid, risk translucent with %, rotated beliefs dashed/transported), rules tab, shift moment, 1×/2×/4× autoplay (`+`/`-`), Space pause, Right step, and a `Why?` proof tree for rooms and log rows. `--demo` starts immediately on the given seed and loops HAUNT-4F2A → HAUNT-7C1D → HAUNT-5D7C with a 3 s pause. Five screenshots are in `docs/screens/watch_ai_*.png`. The explainability pack is `docs/CODE_TOUR.md`, `docs/FORWARD_CHAINING_WALKTHROUGH.md`, `docs/DEMO_SCRIPT.md`, `docs/QA.md`, and `docs/EVALUATION.md`.
-- **M5.1 — Explainability review fixes** (branch `fix/m5-explainability`). R16 is now a logged derivation with `Rotated(wing, direction)` as its premise and per-item provenance edges from old to new facts/constraints; it counts in the KB tab. R17 log/proof lines include the actual safe path. `docs/CODE_TOUR.md` now separates the forward-chaining rules from enumeration/A*/gamble planner logic and names `KnowledgeBase.apply_shift`/`kb/transport.py` as R16's home. Screenshots were regenerated for the new R16/R17 lines.
+- **M5.1 — Explainability review fixes** (PR #16, squash-merged `a2b2669`). R16 is now a logged derivation with `Rotated(wing, direction)` as its premise and per-item provenance edges from old to new facts/constraints; it counts in the KB tab. R17 log/proof lines include the actual safe path. `docs/CODE_TOUR.md` now separates the forward-chaining rules from enumeration/A*/gamble planner logic and names `KnowledgeBase.apply_shift`/`kb/transport.py` as R16's home. Screenshots were regenerated for the new R16/R17 lines.
 
 ## In progress
 
-- M5.1 review fixes are pending commit/push/PR; **M6 has not been started.**
+- None. **M6 has not been started.**
 
 ## Explicitly not done (M5 scope)
 
@@ -60,7 +60,7 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy pytest -q tests/test_entrypoint.py t
 - M4: 211 tests pass locally (adds 8 headless UI tests: title/mode flow, keyboard move/charm, mouse move/right-click marks, shift-mark rotation, shift skip, every scene draws, result reachable, result layout). Ruff clean.
 - M4.1: 225 tests pass locally (adds 5 real-entry-point subprocess tests, delta/provenance/R16 tests, Wilson/McNemar/calibration tests, gamble logging and star tests). Ruff clean.
 - **M5: 232 tests pass locally** (adds trace/proof/shift tests, delta-only log tests, the no-pygame-import headless guard, and the `--demo` subprocess test). `ruff check .` and `ruff format --check .` pass. CI is green on Python 3.11 and 3.12 (run 39722346245).
-- **M5.1: 235 tests pass locally** (adds R16 log/stats/proof and R17 safe-path tests). `ruff check .` and `ruff format --check .` pass.
+- **M5.1: 235 tests pass locally** (adds R16 log/stats/proof and R17 safe-path tests). `ruff check .` and `ruff format --check .` pass. CI is green on Python 3.11 and 3.12 (run 39725550501).
 - **M5 reporting set: 200 seeds/mode, `SIM-<MODE>-0000..0199`** (`sim/results.json`), win rate:
   - Apprentice: b0 5.0%, b1 3.5%, b2/b2b/b3 94.5%, oracle 100%.
   - Explorer: b0 4.5%, b1 3.5%, b2 77.5%, b2b 83.5%, b3 91.5%, oracle 100%.
