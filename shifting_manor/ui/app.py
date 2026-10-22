@@ -100,6 +100,14 @@ class App:
         self.scene = "title"
         self.mode_names = list(MODES)
         self.mode_index = 1
+        self.agent_names = ["b3", "b2", "b2b"]
+        self.agent_index = 0
+        self.watch = None
+        self.demo = False
+        self.demo_mode = "explorer"
+        self.demo_seeds: list[str] = []
+        self.demo_index = 0
+        self.demo_pause = 0.0
         self.game: Game | None = None
         self.percepts = Percepts()
         self.events: list = []
@@ -162,6 +170,37 @@ class App:
         self.result = None
         self.scene = "play"
 
+    def start_watch(
+        self, mode: str | None = None, seed: str | None = None, agent: str | None = None
+    ) -> None:
+        mode = mode or self.mode_names[self.mode_index]
+        self.seed = seed or self.seed
+        agent = agent or self.agent_names[self.agent_index]
+        from shifting_manor.trace import build_trace
+        from shifting_manor.ui.watch import WatchView
+
+        store = build_trace(mode, self.seed, agent)
+        self.watch = WatchView(
+            store,
+            to_logical=self._to_logical,
+            on_exit=self._exit_watch,
+            seed=self.seed,
+        )
+        self.scene = "watch"
+
+    def start_demo(self, seed: str | None = None, mode: str | None = None) -> None:
+        self.demo = True
+        self.demo_mode = mode or "explorer"
+        first = seed or self.seed
+        self.demo_seeds = [first] + [s for s in ("HAUNT-7C1D", "HAUNT-5D7C") if s != first]
+        self.demo_index = 0
+        self.demo_pause = 0.0
+        self.start_watch(self.demo_mode, self.demo_seeds[0], "b3")
+
+    def _exit_watch(self) -> None:
+        self.demo = False
+        self.scene = "modes"
+
     def new_seed(self) -> str:
         self.seed = f"HAUNT-{random.randrange(16**4):04X}"
         return self.seed
@@ -198,6 +237,9 @@ class App:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
             self.windowed = not self.windowed
             self._set_window()
+            return
+        if self.scene == "watch" and self.watch is not None:
+            self.watch.handle(event)
             return
         if event.type == pygame.MOUSEMOTION:
             logical = self._to_logical(event.pos)
@@ -236,24 +278,33 @@ class App:
             if key == pygame.K_q:
                 self.running = False
             return
-        if key in (pygame.K_UP, pygame.K_w, pygame.K_a):
+        if key in (pygame.K_UP, pygame.K_w):
             self.mode_index = (self.mode_index - 1) % len(self.mode_names)
-        elif key in (pygame.K_DOWN, pygame.K_s, pygame.K_d):
+        elif key in (pygame.K_DOWN, pygame.K_s):
             self.mode_index = (self.mode_index + 1) % len(self.mode_names)
         elif key in (pygame.K_1, pygame.K_2, pygame.K_3):
             self.mode_index = key - pygame.K_1
+        elif key == pygame.K_a:
+            self.agent_index = (self.agent_index + 1) % len(self.agent_names)
         elif key == pygame.K_n:
             self.new_seed()
         elif key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_KP_ENTER):
             self.start_game(self.mode_names[self.mode_index], self.seed)
+        elif key == pygame.K_v:
+            self.start_watch(self.mode_names[self.mode_index], self.seed)
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             pos = self._to_logical(event.pos)
             for i, rect in enumerate(self._mode_rects()):
                 if rect.collidepoint(pos):
                     self.mode_index = i
                     return
+            if self._last_buttons.get("agent", self._agent_rect()).collidepoint(pos):
+                self.agent_index = (self.agent_index + 1) % len(self.agent_names)
+                return
             if self._last_buttons.get("begin", self._begin_rect()).collidepoint(pos):
                 self.start_game(self.mode_names[self.mode_index], self.seed)
+            elif self._last_buttons.get("watch", self._watch_rect()).collidepoint(pos):
+                self.start_watch(self.mode_names[self.mode_index], self.seed)
 
     def _handle_play(self, event) -> None:
         pygame = self.pygame
@@ -402,6 +453,17 @@ class App:
 
     # -- update -----------------------------------------------------------
     def update(self, dt: float) -> None:
+        if self.scene == "watch" and self.watch is not None:
+            self.watch.update(dt)
+            if self.demo and self.watch.finished():
+                self.demo_pause += dt
+                if self.demo_pause >= 3.0:
+                    self.demo_pause = 0.0
+                    self.demo_index = (self.demo_index + 1) % len(self.demo_seeds)
+                    self.start_watch(self.demo_mode, self.demo_seeds[self.demo_index], "b3")
+            elif self.demo:
+                self.demo_pause = 0.0
+            return
         if self.shift_anim is not None:
             self.shift_anim.elapsed += dt
             if self.shift_anim.elapsed >= self.shift_anim.duration:
@@ -439,7 +501,13 @@ class App:
         return [pygame.Rect(x0 + i * (width + gap), 190, width, 300) for i in range(3)]
 
     def _begin_rect(self) -> pygame.Rect:
-        return self.pygame.Rect(540, 550, 200, 56)
+        return self.pygame.Rect(420, 550, 200, 56)
+
+    def _watch_rect(self) -> pygame.Rect:
+        return self.pygame.Rect(660, 550, 220, 56)
+
+    def _agent_rect(self) -> pygame.Rect:
+        return self.pygame.Rect(900, 506, 300, 40)
 
     def _result_panel_rect(self) -> pygame.Rect:
         return self.pygame.Rect(560, 170, 672, 478)
@@ -465,6 +533,8 @@ class App:
             self._draw_play()
         elif self.scene == "result":
             self._draw_result()
+        elif self.scene == "watch" and self.watch is not None:
+            self.watch.draw(self.canvas)
 
     def run(self, max_frames: int | None = None, screenshot: str | None = None) -> None:
         pygame = self.pygame
@@ -585,11 +655,43 @@ class App:
             theme.INK,
             (80, 512),
         )
+        agent = self._agent_rect()
+        theme.button(
+            self.canvas,
+            agent,
+            f"{strings.MODE_AGENT}: {self.agent_names[self.agent_index].upper()}  [A]",
+            hover=agent.collidepoint(mouse),
+            size=22,
+        )
+        self._last_buttons["agent"] = agent
         begin = self._begin_rect()
         theme.button(
-            self.canvas, begin, strings.MODE_BEGIN, selected=True, hover=begin.collidepoint(mouse)
+            self.canvas,
+            begin,
+            strings.MODE_BEGIN,
+            selected=True,
+            hover=begin.collidepoint(mouse),
+            size=26,
         )
         self._last_buttons["begin"] = begin
+        watch = self._watch_rect()
+        theme.button(
+            self.canvas,
+            watch,
+            strings.MODE_WATCH,
+            selected=True,
+            hover=watch.collidepoint(mouse),
+            size=26,
+        )
+        self._last_buttons["watch"] = watch
+        theme.text(
+            self.canvas,
+            strings.MODE_AGENT_HINT,
+            16,
+            theme.MUTED,
+            (1080, 552),
+            anchor="topright",
+        )
 
     # -- play -------------------------------------------------------------
     def _draw_play(self) -> None:
@@ -722,31 +824,7 @@ class App:
         )
 
     def _draw_mark_on(self, surface, rect, mark: str) -> None:
-        pygame = self.pygame
-        c = rect.center
-        if mark == "safe":
-            pygame.draw.lines(
-                surface,
-                theme.TEAL,
-                False,
-                [(c[0] - 16, c[1]), (c[0] - 4, c[1] + 12), (c[0] + 18, c[1] - 14)],
-                5,
-            )
-        elif mark == "pit":
-            pygame.draw.circle(surface, theme.ORANGE, c, 19, 3)
-            pygame.draw.line(
-                surface, theme.ORANGE, (c[0] - 11, c[1] - 11), (c[0] + 11, c[1] + 11), 5
-            )
-            pygame.draw.line(
-                surface, theme.ORANGE, (c[0] + 11, c[1] - 11), (c[0] - 11, c[1] + 11), 5
-            )
-        elif mark == "ghost":
-            pygame.draw.circle(surface, theme.CYAN, (c[0], c[1] - 5), 15, 3)
-            pygame.draw.line(surface, theme.CYAN, (c[0] - 15, c[1] + 8), (c[0] - 15, c[1] + 18), 3)
-            pygame.draw.line(surface, theme.CYAN, (c[0], c[1] + 10), (c[0], c[1] + 20), 3)
-            pygame.draw.line(surface, theme.CYAN, (c[0] + 15, c[1] + 8), (c[0] + 15, c[1] + 18), 3)
-        elif mark == "?":
-            theme.text(surface, "?", 42, theme.VIOLET, c, anchor="center", bold=True)
+        theme.mark(surface, rect, mark)
 
     def _draw_treasure(self, surface, rect) -> None:
         pygame = self.pygame
@@ -1126,10 +1204,13 @@ def main(
     mode: str | None = None,
     frames: int | None = None,
     screenshot: str | None = None,
+    demo: bool = False,
 ) -> None:
     """Real entry point used by ``python -m shifting_manor``."""
     app = App(audio=audio, windowed=windowed, seed=seed)
-    if mode:
+    if demo:
+        app.start_demo(seed, mode or "explorer")
+    elif mode:
         app.start_game(mode, seed)
     if screenshot and frames is None:
         frames = 1

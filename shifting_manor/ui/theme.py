@@ -78,9 +78,59 @@ def button(
     *,
     selected: bool = False,
     hover: bool = False,
+    size: int = 30,
 ) -> None:
     fill = BG_PANEL_LIGHT if selected or hover else BG_PANEL
     edge = GOLD if selected else (GOLD if hover else WALL)
     pygame.draw.rect(surface, fill, rect, border_radius=8)
     pygame.draw.rect(surface, edge, rect, 2, border_radius=8)
-    text(surface, label, 30, INK if selected else MUTED, rect.center, anchor="center")
+    text(surface, label, size, INK if selected else MUTED, rect.center, anchor="center")
+
+
+def mark(surface: pygame.Surface, rect: pygame.Rect, kind: str, alpha: int = 255) -> None:
+    """One icon vocabulary for human marks and the Watch AI belief overlay."""
+    target = surface
+    box = rect
+    if alpha < 255:
+        target = pygame.Surface(rect.size, pygame.SRCALPHA)
+        box = pygame.Rect(0, 0, rect.width, rect.height)
+    c = box.center
+    if kind == "safe":
+        pygame.draw.lines(
+            target,
+            TEAL,
+            False,
+            [(c[0] - 16, c[1]), (c[0] - 4, c[1] + 12), (c[0] + 18, c[1] - 14)],
+            5,
+        )
+    elif kind == "pit":
+        pygame.draw.circle(target, ORANGE, c, 19, 3)
+        pygame.draw.line(target, ORANGE, (c[0] - 11, c[1] - 11), (c[0] + 11, c[1] + 11), 5)
+        pygame.draw.line(target, ORANGE, (c[0] + 11, c[1] - 11), (c[0] - 11, c[1] + 11), 5)
+    elif kind == "ghost":
+        pygame.draw.circle(target, CYAN, (c[0], c[1] - 5), 15, 3)
+        pygame.draw.line(target, CYAN, (c[0] - 15, c[1] + 8), (c[0] - 15, c[1] + 18), 3)
+        pygame.draw.line(target, CYAN, (c[0], c[1] + 10), (c[0], c[1] + 20), 3)
+        pygame.draw.line(target, CYAN, (c[0] + 15, c[1] + 8), (c[0] + 15, c[1] + 18), 3)
+    elif kind == "?":
+        text(target, "?", 42, VIOLET, c, anchor="center", bold=True)
+    if target is not surface:
+        target.set_alpha(alpha)
+        surface.blit(target, rect.topleft)
+
+
+def wrap(value: str, size: int, width: int, *, bold: bool = False) -> list[str]:
+    font_obj = font(size, bold)
+    words = value.split()
+    lines: list[str] = []
+    line = ""
+    for word in words:
+        candidate = f"{line} {word}".strip()
+        if line and font_obj.size(candidate)[0] > width:
+            lines.append(line)
+            line = word
+        else:
+            line = candidate
+    if line:
+        lines.append(line)
+    return lines or [""]

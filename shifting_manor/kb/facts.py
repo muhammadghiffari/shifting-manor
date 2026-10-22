@@ -80,6 +80,8 @@ class Firing:
     conclusions: tuple[object, ...]
     turn: int
     note: str = ""
+    rederived: bool = False
+    shift_index: int = 0
 
 
 @dataclass
