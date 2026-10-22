@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import random
 from collections.abc import Iterable
+from dataclasses import dataclass
 
 from shifting_manor.agents.planner import (
     Route,
@@ -26,6 +27,25 @@ from shifting_manor.engine.types import (
 from shifting_manor.kb.base import KnowledgeBase
 from shifting_manor.kb.enumerate import Model, enumerate_models
 from shifting_manor.kb.facts import Explanation, Firing
+
+
+@dataclass(frozen=True)
+class GambleCandidate:
+    """One R22 candidate: what it would risk and why it scored that way."""
+
+    cell: Cell
+    risk: float
+    utility: float
+
+
+@dataclass(frozen=True)
+class GambleDecision:
+    """The gamble actually taken: target risk and the risk of the first step."""
+
+    target: Cell
+    target_risk: float
+    step_cell: Cell | None
+    step_risk: float
 
 
 def direction_between(a: Cell, b: Cell) -> Dir | None:
@@ -62,6 +82,9 @@ class KBAgent:
         self.last_firings: list[Firing] = []
         self.last_action: Action | None = None
         self.model: Model | None = None
+        self.gamble_candidates: list[GambleCandidate] = []
+        self.last_gamble: GambleDecision | None = None
+        self.last_route: Route | None = None
 
     def reset(self, info: GameInfo) -> None:
         self.info = info
@@ -76,11 +99,16 @@ class KBAgent:
         self.last_firings = []
         self.last_action = None
         self.model = None
+        self.gamble_candidates = []
+        self.last_gamble = None
+        self.last_route = None
 
     def act(self, percepts: Percepts, events: Iterable[Event]) -> Action:
         if self.info is None or self.kb is None:
             raise RuntimeError("reset() before act()")
         events = list(events)
+        self.gamble_candidates = []
+        self.last_gamble = None
         self.kb.on_events(events)
         self._absorb(events)
         self._sync_globals()
@@ -155,7 +183,15 @@ class KBAgent:
                 action = self._move_to(
                     target, safe=False, thought="R22: no safe goal; take the best gamble."
                 )
-                if action is not None:
+                if action is not None and self.model is not None:
+                    chosen = next(c for c in self.gamble_candidates if c.cell == target)
+                    first = self.last_route.first_step if self.last_route is not None else None
+                    self.last_gamble = GambleDecision(
+                        target=target,
+                        target_risk=chosen.risk,
+                        step_cell=first,
+                        step_risk=self.model.risk(first) if first is not None else chosen.risk,
+                    )
                     return action
         return self._fallback()
 
@@ -173,6 +209,7 @@ class KBAgent:
 
     def _move_to(self, target: Cell, *, safe: bool, thought: str) -> Action | None:
         assert self.kb is not None
+        self.last_route = None
         risk_of = self.model.risk if self.model is not None else None
         route: Route | None
         if safe:
@@ -194,6 +231,7 @@ class KBAgent:
         direction = direction_between(self.pos, route.first_step)
         if direction is None:
             return None
+        self.last_route = route
         self.last = Explanation(thought=thought, firings=list(self.kb.firings))
         return Move(direction)
 
@@ -238,7 +276,7 @@ class KBAgent:
         if not candidates:
             return None
         avoid = self._avoid_wing()
-        scored: list[tuple[float, int, Cell]] = []
+        scored: list[tuple[float, int, Cell, float]] = []
         for cell in candidates:
             route = cautious_route(
                 self.kb,
@@ -250,13 +288,17 @@ class KBAgent:
             )
             if route is None:
                 continue
-            utility = expected_utility(
-                self.model.risk(cell), route.steps, self._unknown_neighbours(cell)
-            )
-            scored.append((-utility, route.steps, cell))
+            risk = self.model.risk(cell)
+            utility = expected_utility(risk, route.steps, self._unknown_neighbours(cell))
+            scored.append((-utility, route.steps, cell, utility))
         if not scored:
+            self.gamble_candidates = []
             return None
-        return min(scored)[2]
+        scored.sort()
+        self.gamble_candidates = [
+            GambleCandidate(cell, self.model.risk(cell), utility) for _, _, cell, utility in scored
+        ]
+        return scored[0][2]
 
     def _avoid_wing(self) -> set[Cell]:
         assert self.kb is not None

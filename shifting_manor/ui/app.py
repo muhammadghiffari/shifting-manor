@@ -177,10 +177,13 @@ class App:
 
     def _finish(self) -> None:
         assert self.game is not None
+        from shifting_manor.sim.runner import run_game
+
+        par = run_game(self.game.mode.name, self.seed, "b4").actions
         self.result = {
             "outcome": self.game.state.outcome or "stalled",
             "score": self.game.score(),
-            "stars": self.game.stars(),
+            "stars": self.game.stars(par),
         }
         self.paused = False
         self.shift_anim = None
@@ -463,7 +466,7 @@ class App:
         elif self.scene == "result":
             self._draw_result()
 
-    def run(self, max_frames: int | None = None) -> None:
+    def run(self, max_frames: int | None = None, screenshot: str | None = None) -> None:
         pygame = self.pygame
         frames = 0
         while self.running:
@@ -476,6 +479,9 @@ class App:
             frames += 1
             if max_frames is not None and frames >= max_frames:
                 break
+        if screenshot:
+            self.draw()
+            pygame.image.save(self.canvas, screenshot)
         pygame.quit()
 
     # -- backgrounds ------------------------------------------------------
@@ -1110,3 +1116,21 @@ class App:
             if alpha:
                 pygame.draw.circle(surface, (255, 176, 96, alpha), center, radius)
         return surface
+
+
+def main(
+    *,
+    audio: bool = True,
+    windowed: bool = True,
+    seed: str = "HAUNT-4F2A",
+    mode: str | None = None,
+    frames: int | None = None,
+    screenshot: str | None = None,
+) -> None:
+    """Real entry point used by ``python -m shifting_manor``."""
+    app = App(audio=audio, windowed=windowed, seed=seed)
+    if mode:
+        app.start_game(mode, seed)
+    if screenshot and frames is None:
+        frames = 1
+    app.run(max_frames=frames, screenshot=screenshot)

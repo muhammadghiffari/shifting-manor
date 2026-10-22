@@ -174,15 +174,18 @@ class Game:
             score -= 1000
         return score
 
-    def stars(self) -> int:
-        if not (self.state.outcome or "").startswith("escaped"):
+    def stars(self, par: int) -> int:
+        """Star rating relative to the oracle's action count on this seed.
+
+        3 = escaped with the heirloom at or under par + 15 actions,
+        2 = escaped with the heirloom, 1 = escaped empty-handed, 0 = died/stalled.
+        """
+        outcome = self.state.outcome or ""
+        if not outcome.startswith("escaped"):
             return 0
-        score = self.score()
-        if score >= 900:
-            return 3
-        if score >= 850:
-            return 2
-        return 1
+        if outcome == "escaped_empty":
+            return 1
+        return 3 if self.state.actions_taken <= par + 15 else 2
 
     def reveal(self) -> dict[str, object]:
         """Full board for the result screen / oracle, never for a live human."""

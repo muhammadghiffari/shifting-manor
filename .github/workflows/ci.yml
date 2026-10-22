@@ -21,3 +21,4 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest -q
+      - run: python -m shifting_manor --windowed --no-audio --frames 30

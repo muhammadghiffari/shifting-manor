@@ -291,3 +291,44 @@ def test_observation_is_only_used_once():
     assert first > 0
     kb.observe(Percepts())
     assert len([f for f in kb.log if f.rule_id == "R02"]) == first
+
+
+def test_second_turn_logs_only_new_derivations():
+    kb = fresh_kb()
+    kb.observe(Percepts())
+    assert kb.firings
+    logged = len(kb.log)
+
+    kb.observe(Percepts())
+
+    assert kb.firings == []
+    assert len(kb.log) == logged
+    assert kb.last_rederivations > 0
+    assert set(kb.last_rederivations_by_rule) <= {r.id for r in RULES}
+
+
+def test_provenance_points_from_fact_to_rule_and_percept_leaf():
+    kb = fresh_kb()
+    kb.observe(Percepts())
+
+    leaf = kb.provenance[Fact("NoBreeze", (0, 0))]
+    assert leaf.rule_id == "PERCEPT"
+    assert leaf.premises == ()
+
+    no_pit = kb.provenance[Fact("NoPit", (1, 0))]
+    assert no_pit.rule_id == "R02"
+    assert Fact("NoBreeze", (0, 0)) in no_pit.premises
+    assert no_pit.turn == 0
+
+
+def test_r16_logs_one_aggregate_line_and_keeps_provenance():
+    kb = fresh_kb()
+    add(kb, Fact("Pit", (3, 0)), Fact("NoPit", (3, 1)))
+    kb.run()
+    kb.apply_shift(1, "cw", rotation_mapping(1, "cw", 6))
+
+    r16 = [f for f in kb.log if f.rule_id == "R16"][-1]
+    assert r16.note == "R16 transported 2 facts (wing 1, cw)"
+    moved = Fact("Pit", rotation_mapping(1, "cw", 6)[(3, 0)])
+    assert kb.provenance[moved].rule_id == "R16"
+    assert Fact("Pit", (3, 0)) in kb.provenance[moved].premises

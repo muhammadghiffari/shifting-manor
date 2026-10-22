@@ -147,6 +147,21 @@ def test_treasure_pickup_and_escape_score():
     assert game.score() == 1000 - 1
 
 
+def test_stars_are_relative_to_the_oracle_par():
+    game = Game.from_map("apprentice", "x", pits=set(), ghost=None, treasure=(1, 0))
+    game.state.outcome = "escaped_treasure"
+    game.state.actions_taken = 10
+    assert game.stars(par=10) == 3
+    game.state.actions_taken = 25
+    assert game.stars(par=10) == 3
+    game.state.actions_taken = 26
+    assert game.stars(par=10) == 2
+    game.state.outcome = "escaped_empty"
+    assert game.stars(par=10) == 1
+    game.state.outcome = "died_pit"
+    assert game.stars(par=10) == 0
+
+
 def test_leave_outside_entrance_is_invalid_and_free():
     game = Game.from_map("apprentice", "x", pits=set(), ghost=None, treasure=(3, 3))
     game.state.agent = (1, 0)
