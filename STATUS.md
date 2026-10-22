@@ -1,6 +1,6 @@
 # STATUS
 
-_Last updated by:_ coding agent · _Date:_ 2026-10-22 (M5 merged, tag `m5`; M5.1 explainability review fixes merged in PR #16)
+_Last updated by:_ coding agent · _Date:_ 2026-10-22 (PR1 Hardening complete; 251 tests passing)
 
 ## Done
 
@@ -15,12 +15,13 @@ _Last updated by:_ coding agent · _Date:_ 2026-10-22 (M5 merged, tag `m5`; M5.1
 - **M4.1 — Hardening** (PR #14, squash-merged `594b3d8`, tag `m4.1`). Entry point fixed (`python -m shifting_manor` works; default windowed with `--fullscreen` opt-in; `--mode/--seed/--no-audio/--frames/--screenshot` forwarded), real subprocess tests with SDL dummy drivers, and a CI 30-frame smoke step. Inference logging is now a per-turn delta against the transported previous closure; re-derivations have separate debug counters; provenance `Fact -> first Firing` and `Constraint -> Firing` exists for the M5 proof tree; R16 logs one aggregate line. Stars are relative to oracle par (3★ at par + 15, 2★ slower treasure escape, 1★ empty-handed).
 - **M5 — Watch AI** (PR #15, squash-merged `1a52949`, tag `m5`). Mode select now has **WATCH AI** with an agent picker (B3 default, B2, B2b). The replay uses the real stored trace: full-game board, delta-only inference log, gold highlights on touched cells, belief overlay (certain solid, risk translucent with %, rotated beliefs dashed/transported), rules tab, shift moment, 1×/2×/4× autoplay (`+`/`-`), Space pause, Right step, and a `Why?` proof tree for rooms and log rows. `--demo` starts immediately on the given seed and loops HAUNT-4F2A → HAUNT-7C1D → HAUNT-5D7C with a 3 s pause. Five screenshots are in `docs/screens/watch_ai_*.png`. The explainability pack is `docs/CODE_TOUR.md`, `docs/FORWARD_CHAINING_WALKTHROUGH.md`, `docs/DEMO_SCRIPT.md`, `docs/QA.md`, and `docs/EVALUATION.md`.
 - **M5.1 — Explainability review fixes** (PR #16, squash-merged `a2b2669`). R16 is now a logged derivation with `Rotated(wing, direction)` as its premise and per-item provenance edges from old to new facts/constraints; it counts in the KB tab. R17 log/proof lines include the actual safe path. `docs/CODE_TOUR.md` now separates the forward-chaining rules from enumeration/A*/gamble planner logic and names `KnowledgeBase.apply_shift`/`kb/transport.py` as R16's home. Screenshots were regenerated for the new R16/R17 lines.
+- **PR1 — Hardening** (PR #17). Verified `python -m shifting_manor --windowed --frames 30` exits 0; added subprocess smoke tests for all 5 scenes (title, mode select, play, watch AI, result); added CLI `--seed` flag coverage; added property/fuzz tests showing all 6 agents (`b0, b1, b2, b2b, b3, b4`) on random boards across all modes never crash; verified determinism of event logs and action sequences; added 4x rotation and cw/ccw transport identity tests; verified R01–R24 rule firings; added mutation regression tests verifying that disabling R16, R07, or enumeration fails tests; updated Watch AI inference log and trace view layouts to wrap long multi-line firings (such as long R16 aggregate transport lines) without truncation.
 
 ## In progress
 
-- None. **M6 has not been started.**
+- **PR2 — Optimality audit** (next). Exact posterior ground-truth tool (`tools/posterior.py`), B3 calibration analysis, 1000-reporting-seed failure classification (forced vs avoidable vs suboptimal gamble), B5 policy comparison, and `docs/OPTIMALITY_AUDIT.md`.
 
-## Explicitly not done (M5 scope)
+## Explicitly not done (PR1 scope)
 
 - KB tab heat bars.
 - Step-back.

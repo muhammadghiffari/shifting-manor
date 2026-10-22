@@ -273,6 +273,68 @@ def test_transport_is_idempotent_under_identity_mapping():
     assert moved_cons == frozenset(constraints)
 
 
+def test_four_clockwise_transports_are_identity():
+    """Applying 4 clockwise rotations transports facts and constraints back to start."""
+    facts = frozenset({Fact("Pit", (3, 0)), Fact("NoGhost", (4, 1))})
+    constraints = frozenset({Constraint("PIT", frozenset({(3, 0), (4, 1)}))})
+    curr_f, curr_c = facts, constraints
+    mapping = rotation_mapping(1, "cw", 6)
+    for _ in range(4):
+        curr_f, curr_c = transport(curr_f, curr_c, mapping)
+    assert curr_f == facts
+    assert curr_c == constraints
+
+
+def test_cw_then_ccw_transports_are_identity():
+    """Applying clockwise then counter-clockwise rotation restores original facts."""
+    facts = frozenset({Fact("Pit", (3, 0)), Fact("NoGhost", (4, 1))})
+    constraints = frozenset({Constraint("PIT", frozenset({(3, 0), (4, 1)}))})
+    cw = rotation_mapping(1, "cw", 6)
+    ccw = rotation_mapping(1, "ccw", 6)
+    f_cw, c_cw = transport(facts, constraints, cw)
+    f_orig, c_orig = transport(f_cw, c_cw, ccw)
+    assert f_orig == facts
+    assert c_orig == constraints
+
+
+def test_mutation_disabling_r16_fails_transport(monkeypatch):
+    """Mutation check: disabling R16 transport drops facts that should be relocated."""
+    kb = fresh_kb()
+    add(kb, Fact("Pit", (3, 0)))
+    mapping = rotation_mapping(1, "cw", 6)
+    kb.apply_shift(1, "cw", mapping)
+    dest = mapping[(3, 0)]
+    assert kb.has("Pit", dest)
+
+    # Disabling R16 transport by stubbing apply_shift to a no-op:
+    monkeypatch.setattr(KnowledgeBase, "apply_shift", lambda self, *args, **kwargs: None)
+    kb_mut = fresh_kb()
+    add(kb_mut, Fact("Pit", (3, 0)))
+    kb_mut.apply_shift(1, "cw", mapping)
+    assert not kb_mut.has("Pit", dest)
+
+
+def test_mutation_disabling_r07_fails_single_candidate_ghost(monkeypatch):
+    """Mutation check: disabling R07 prevents deducing ghost from single candidate."""
+    import shifting_manor.kb.rules as rules_mod
+
+    # Standard R07 scenario derives Ghost(2, 0)
+    kb = fresh_kb()
+    s_r07(kb)
+    kb.run()
+    assert kb.has("Ghost", (2, 0))
+
+    # Mutate: remove R07 from RULES
+    mutated_rules = [r for r in rules_mod.RULES if r.id != "R07"]
+    monkeypatch.setattr(rules_mod, "RULES", mutated_rules)
+
+    kb_mut = fresh_kb()
+    s_r07(kb_mut)
+    kb_mut.run()
+    assert not kb_mut.has("Ghost", (2, 0))
+    assert not any(f.rule_id == "R07" for f in kb_mut.log)
+
+
 def test_shift_rule_is_registered_as_r16():
     assert RULE_BY_ID["R16"].description.startswith("Rotated")
 

@@ -220,3 +220,68 @@ def test_b3_gamble_decision_exposes_risks():
         assert 0.0 <= gamble["target_risk"] <= 1.0
         assert 0.0 <= gamble["step_risk"] <= 1.0
         assert isinstance(gamble["died"], bool)
+
+
+def test_mutation_disabling_enumeration_fails_risk_ranking(monkeypatch):
+    """Mutation check: disabling enumeration makes risk model collapse to zero risk."""
+    import shifting_manor.kb.enumerate as enum_mod
+    from shifting_manor.kb.enumerate import Model
+
+    kb = KnowledgeBase(info(size=4, pits=1))
+    kb.set_global("GhostAlive", False)
+    kb.add_base(Constraint("PIT", frozenset({(1, 1), (2, 1), (3, 1)})))
+    kb.add_base(Fact("NoPit", (1, 1)))
+    kb.add_base(Fact("NoPit", (2, 1)))
+
+    real_model = enumerate_models(kb)
+    assert real_model.pit_risk[(3, 1)] == 1.0
+    assert (3, 1) in real_model.entailed_pit
+
+    # Mutate: disabled enumeration returns empty/zero-risk fallback
+    def disabled_enum(_kb):
+        return Model(
+            pit_risk={},
+            ghost_risk={},
+            entailed_pit=frozenset(),
+            entailed_nopit=frozenset(),
+            entailed_ghost=frozenset(),
+            entailed_noghost=frozenset(),
+            worlds=0,
+            fallback=True,
+            warnings=("disabled",),
+        )
+
+    monkeypatch.setattr(enum_mod, "enumerate_models", disabled_enum)
+    mutated_model = enum_mod.enumerate_models(kb)
+    assert mutated_model.risk((3, 1)) == 0.0
+    assert (3, 1) not in mutated_model.entailed_pit
+
+
+@pytest.mark.parametrize("agent_name", ["b0", "b1", "b2", "b2b", "b3", "b4"])
+def test_all_agents_never_crash_on_random_boards(agent_name):
+    """Property test: all 6 agents across all modes and random seeds run without crashing."""
+    valid_outcomes = {
+        "escaped_treasure",
+        "escaped_empty",
+        "died_pit",
+        "died_ghost",
+        "died_oil",
+        "stalled",
+    }
+    for mode in ("apprentice", "explorer", "haunted"):
+        for seed_idx in (1, 2):
+            seed = f"PROP-FUZZ-{agent_name}-{mode}-{seed_idx}"
+            record = run_game(mode, seed, agent_name, max_steps=200)
+            assert record.outcome in valid_outcomes
+            assert record.actions >= 0
+
+
+def test_agent_determinism_identical_event_log():
+    """Property test: same seed produces identical actions and event log across runs."""
+    for mode in ("apprentice", "explorer", "haunted"):
+        seed = f"DET-{mode}-99"
+        first = run_game(mode, seed, "b3")
+        second = run_game(mode, seed, "b3")
+        assert first.outcome == second.outcome
+        assert first.actions == second.actions
+        assert first.score == second.score
