@@ -1,6 +1,6 @@
 # STATUS
 
-_Last updated by:_ coding agent · _Date:_ 2026-10-22 (M4.1 merged, M5 next)
+_Last updated by:_ coding agent · _Date:_ 2026-10-22 (M5 merged, tag `m5`)
 
 ## Done
 
@@ -12,11 +12,24 @@ _Last updated by:_ coding agent · _Date:_ 2026-10-22 (M4.1 merged, M5 next)
   - Bugs found by the sim and fixed at the root: R01 was re-deriving `NoPit`/`NoGhost` from durable `Visited` facts after a shift moved a hazard into an old room; enumeration also treated historical `Visited` as current `NoPit`; fully-resolved constraints were misreported as inconsistent; the oracle never applied `ShiftApplied`, so it planned on the pre-shift map.
   - B3 deaths in the 200-seed suite are all R22 forced guesses (no safe unvisited room), never a known-`Unsafe`/`Pit`/`Ghost` step.
 - **M4 — Play mode UI** (PR #13, squash-merged `fb5ed75`, tag `m4`). Title, mode select, play board with lantern fog and wing runes, Senses panel, HUD with shift clock, right-click/key marks, pause, shift animation with rotating marks and dust, and result screen with stars/stats/seed and Replay/New seed/Menu. Keyboard and mouse both work. Screenshots in `docs/screens/` (title, mode select, board with fog, shift mid-frame, pause, result).
-- **M4.1 — Hardening** (PR #14, squash-merged `594b3d8`, tag `m4.1`). Entry point fixed (`python -m shifting_manor` works; default windowed with `--fullscreen` opt-in; `--mode/--seed/--no-audio/--frames/--screenshot` forwarded), real subprocess tests with SDL dummy drivers, and a CI 30-frame smoke step. Inference logging is now a per-turn delta against the transported previous closure; re-derivations have separate debug counters; provenance `Fact -> first Firing` with percept leaves exists for the M5 proof tree; R16 logs one aggregate line. Evaluation now has Wilson 95% CIs, paired McNemar tests, gamble risk/outcome logging and calibration, 1000 tuning + 1000 reporting seeds per mode, and `docs/EVALUATION.md`. Stars are relative to oracle par (3★ at par + 15, 2★ slower treasure escape, 1★ empty-handed).
+- **M4.1 — Hardening** (PR #14, squash-merged `594b3d8`, tag `m4.1`). Entry point fixed (`python -m shifting_manor` works; default windowed with `--fullscreen` opt-in; `--mode/--seed/--no-audio/--frames/--screenshot` forwarded), real subprocess tests with SDL dummy drivers, and a CI 30-frame smoke step. Inference logging is now a per-turn delta against the transported previous closure; re-derivations have separate debug counters; provenance `Fact -> first Firing` and `Constraint -> Firing` exists for the M5 proof tree; R16 logs one aggregate line. Stars are relative to oracle par (3★ at par + 15, 2★ slower treasure escape, 1★ empty-handed).
+- **M5 — Watch AI** (PR #15, squash-merged `1a52949`, tag `m5`). Mode select now has **WATCH AI** with an agent picker (B3 default, B2, B2b). The replay uses the real stored trace: full-game board, delta-only inference log, gold highlights on touched cells, belief overlay (certain solid, risk translucent with %, rotated beliefs dashed/transported), rules tab, shift moment, 1×/2×/4× autoplay (`+`/`-`), Space pause, Right step, and a `Why?` proof tree for rooms and log rows. `--demo` starts immediately on the given seed and loops HAUNT-4F2A → HAUNT-7C1D → HAUNT-5D7C with a 3 s pause. Five screenshots are in `docs/screens/watch_ai_*.png`. The explainability pack is `docs/CODE_TOUR.md`, `docs/FORWARD_CHAINING_WALKTHROUGH.md`, `docs/DEMO_SCRIPT.md`, `docs/QA.md`, and `docs/EVALUATION.md`.
 
 ## In progress
 
-- M5 Watch AI on branch `feat/m5-watch-ai`, starting from tag `m4.1`. M6 remains out of scope.
+- None for M5. **M6 has not been started.**
+
+## Explicitly not done (M5 scope)
+
+- KB tab heat bars.
+- Step-back.
+- Log-filter UI.
+- Duel.
+- SimLab.
+- Tutorial.
+- Audio polish.
+
+These are named in the PR and `DECISIONS.md`; they are not hidden omissions.
 
 ## Blocked
 
@@ -31,9 +44,9 @@ pytest -q
 ruff check . && ruff format --check .
 python -m shifting_manor --windowed --no-audio --frames 30
 python -m shifting_manor --mode explorer --seed HAUNT-4F2A --screenshot /tmp/shot.png
+python -m shifting_manor --demo --windowed --seed HAUNT-4F2A
 python -m shifting_manor.cli --agent b3 --mode explorer --seed HAUNT-4F2A --verbose
-python -m shifting_manor.sim --runs 1000 --seed-start 10000 --seed-prefix REPORT --jobs 8 --out sim/results.json
-python -m shifting_manor.sim --runs 1000 --seed-start 0 --seed-prefix TUNE --jobs 8 --out sim/results-tuning.json
+python -m shifting_manor.sim --runs 200 --out sim/results.json
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy pytest -q tests/test_entrypoint.py tests/test_ui_play.py
 ```
 
@@ -45,37 +58,42 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy pytest -q tests/test_entrypoint.py t
 - M3: 204 tests pass locally (adds enumeration weighting/entailment/fallback, A* risk trade-off, expected utility, cross-check on random games, b3 known-unsafe property, R01/oracle shift regressions, oracle-vs-b3 bound, sim smoke/JSON). Ruff clean.
 - M4: 211 tests pass locally (adds 8 headless UI tests: title/mode flow, keyboard move/charm, mouse move/right-click marks, shift-mark rotation, shift skip, every scene draws, result reachable, result layout). Ruff clean.
 - M4.1: 225 tests pass locally (adds 5 real-entry-point subprocess tests, delta/provenance/R16 tests, Wilson/McNemar/calibration tests, gamble logging and star tests). Ruff clean.
-- 1000 reporting seeds/mode (`sim/results.json`), win rate:
-  - apprentice: b0 6.0%, b1 5.6%, b2 95.8%, b2b 95.8%, b3 95.8%, oracle 100%.
-  - explorer: b0 3.6%, b1 3.1%, b2 79.2%, b2b 82.0%, b3 90.3%, oracle 100%.
-  - haunted: b0 3.2%, b1 2.2%, b2 66.2%, b2b 69.7%, b3 79.7%, oracle 100%.
-  - B3 beats B2 by 11.1 pp (Explorer) and 13.5 pp (Haunted); B3 beats B2b by 8.3 pp and 10.0 pp. All four McNemar tests p < 0.001. B2b vs B2 is a small 2.8/3.5 pp gain (p = 0.022/0.012), not the earlier “indistinguishable” result.
-  - Tuning set reproduces the ordering: B3 95.6% / 90.7% / 81.3% (apprentice/explorer/haunted). No K or pit-density tuning was done.
+- **M5: 232 tests pass locally** (adds trace/proof/shift tests, delta-only log tests, the no-pygame-import headless guard, and the `--demo` subprocess test). `ruff check .` and `ruff format --check .` pass. CI is green on Python 3.11 and 3.12 (run 39722346245).
+- **M5 reporting set: 200 seeds/mode, `SIM-<MODE>-0000..0199`** (`sim/results.json`), win rate:
+  - Apprentice: b0 5.0%, b1 3.5%, b2/b2b/b3 94.5%, oracle 100%.
+  - Explorer: b0 4.5%, b1 3.5%, b2 77.5%, b2b 83.5%, b3 91.5%, oracle 100%.
+  - Haunted: b0 4.5%, b1 3.0%, b2 66.0%, b2b 69.0%, b3 82.5%, oracle 100%.
+  - B3 vs B2 is clear: paired McNemar p = 1.8e-6 (Explorer) and 6.3e-8 (Haunted).
+  - B2b vs B2 is **not distinguishable at 200 seeds**: p = 0.052 (Explorer) and 0.377 (Haunted). The docs do not claim B2b is better.
+  - B3 vs B2b is also clear: p = 8.0e-4 and 1.4e-6.
 
 ## Decisions made (also in DECISIONS.md)
 
 - GitHub plan has no branch protection: milestone PRs are still opened and merged only when CI is green, enforced by hand.
-- M0 title window is a placeholder; the real scene stack arrives in M4.
 - M4 draws at a fixed 1280×720 logical canvas and letterboxes to the window; palette and drawing helpers live in `ui/theme.py`, every user-facing string in `ui/strings.py`.
 - M4 result stars are drawn polygons, not Unicode `★`/`☆`, because pygame's default font renders those as missing-glyph boxes.
-- M4 shift overlay draws a translucent floor and grid inside the rotating wing so the rotation is visible, not just moving marks.
-- M4 keeps the PRD's extra scenes (Watch AI, Duel, SimLab, tutorial, settings) out of scope; they belong to M5/M6.
-- M4.1 defaults to windowed and keeps `--windowed` as an explicit no-op; `--fullscreen` is the opt-in. The stale `ui.app.main` import is fixed and covered by subprocess tests that run the real module.
-- M4.1 logs only newly derived facts (delta after R16 transport), keeps re-derivations in debug counters, and stores provenance so M5 can build proof trees. R16 shows one aggregate line in normal mode.
-- M4.1 uses tuning seeds 0–999 and reporting seeds 10000–10999, Wilson CIs, paired McNemar tests, and gamble calibration; `docs/EVALUATION.md` is the report. No K or pit density was tuned.
-- M4.1 stars are relative to oracle par (3★ at par + 15); the distribution is in `docs/EVALUATION.md`.
+- M4 keeps the PRD's extra scenes out of scope; M5 adds only Watch AI.
+- M4.1 defaults to windowed; `--windowed` is an explicit no-op; `--fullscreen` is opt-in. The real module is covered by subprocess tests.
+- M4.1 logs only newly derived facts (delta after R16 transport), keeps re-derivations in debug counters, and stores provenance for the M5 proof trees.
+- M5 scope is Watch AI only. KB heat bars, step-back, log-filter UI, Duel, SimLab, tutorial and audio polish are explicitly not done.
+- M5 agent picker offers B3 (default), B2 and B2b; Apprentice has no shifts so all three agree there.
+- M5 uses `step.firings` (new conclusions only) for the live log and keeps `all_firings` for tests/debug.
+- M5 uses 200 same-seed games per mode for the reporting table. 200 shows the B3-vs-B2 gap; it does not resolve a 3–6 pp B2b effect, so the honest result is “not distinguishable”.
+- `Firing.turn` stays 0-based; Watch AI displays `turn + 1`.
+- M5 demo seeds are HAUNT-4F2A, HAUNT-7C1D and HAUNT-5D7C; `--demo` loops them with a 3 s pause.
 
 ## Risks I see
 
 - The repo is private and has no collaborator yet (see Needs human).
+- The five Watch AI screenshots still need a human visual review; the proof hint was moved away from the close button and `watch_ai_why.png` was regenerated, but the rest should be checked on the presentation screen.
+- The B2b-vs-B2 result is borderline on Explorer (p = 0.052) and null on Haunted; do not present it as a win.
 - CI installs pygame-ce from PyPI on every run; a network hiccup can make CI red for reasons unrelated to the code.
-- M4 screenshots are correct but still need human visual review before any further UI polish (per AGENT.md).
-- The gamble 50–60% calibration bin is 12.4 pp below its midpoint for B3; investigation shows the enumeration itself is calibrated and the gap is policy selection (see `docs/EVALUATION.md` §5). It is documented, not tuned away.
-- `sim/results*.json` are now ~11 MB each because they keep every game and gamble record. If clone size becomes a problem, keep only the aggregate tables and move raw records to a release artifact.
+- `sim/results.json` is ~0.2 MB now; the older 1000-seed tuning file remains in the repo. If clone size becomes a problem, keep aggregates and move raw records to a release artifact.
+- The worktree still has an unrelated stray edit in `docs/TEAM_PLAN.md` and an untracked stale `docs/demo_trace.txt`; neither is committed.
 
 ## Needs human
 
+- Review `docs/screens/watch_ai_*.png` on the presentation display and confirm the text is readable.
 - Invite Radithia Ary Winata as collaborator (need GitHub username).
 - Check the lecturer's policy on AI-assisted code/assets (PRD Section 14).
-- Confirm the presentation OS/screen (PRD Section 14).
-- Review `docs/screens/` for M4 and confirm the UI look before M5/M6 polish.
+- Confirm the presentation OS/screen and whether a recorded video fallback is needed.
