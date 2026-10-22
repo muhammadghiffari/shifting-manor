@@ -631,21 +631,35 @@ class WatchView:
         theme.text(self.canvas, "FIRINGS · NEW THIS TURN", 14, theme.MUTED, (x, y))
         y += 20
         visible = self.step.firings[: self.visible_new()]
-        for i, firing in enumerate(visible[:13]):
-            line = _fit(format_firing(firing), 15, CONTENT.width - 34)
-            color = theme.INK if i == len(visible) - 1 else theme.MUTED
-            theme.text(self.canvas, line, 15, color, (x, y + i * 18))
-        if len(visible) > 13:
+        # Wrapped lines, never truncated with "…"; long R16 lines break across rows.
+        # Firings are atomic: if a multi-line firing doesn't fit, cut cleanly.
+        gy = CONTENT.bottom - 96
+        newest = len(visible) - 1
+        drawn_firings = 0
+        used_lines = 0
+        max_lines = max(1, (gy - 4 - y) // 18)
+        for i, firing in enumerate(visible):
+            flines = theme.wrap(format_firing(firing), 15, CONTENT.width - 34)
+            if (
+                used_lines + len(flines) > max_lines - (1 if i < len(visible) - 1 else 0)
+                and drawn_firings > 0
+            ):
+                break
+            color = theme.INK if i == newest else theme.MUTED
+            for line in flines:
+                theme.text(self.canvas, line, 15, color, (x, y + used_lines * 18))
+                used_lines += 1
+            drawn_firings += 1
+        if drawn_firings < len(visible):
             theme.text(
                 self.canvas,
-                f"… {len(visible) - 13} more",
+                f"… {len(visible) - drawn_firings} more",
                 14,
                 theme.MUTED,
-                (x, y + 13 * 18),
+                (x, y + used_lines * 18),
             )
         if not visible:
             theme.text(self.canvas, "…", 16, theme.MUTED, (x, y))
-        gy = CONTENT.bottom - 96
         theme.text(self.canvas, strings.WATCH_GAMBLES, 14, theme.MUTED, (x, gy))
         if self.step.gamble_candidates:
             for i, candidate in enumerate(self.step.gamble_candidates[:4]):
@@ -750,26 +764,30 @@ class WatchView:
             theme.text(self.canvas, strings.WATCH_LOG_EMPTY, 16, theme.MUTED, (x, y + 4))
             self._log_max_scroll = 0
             return
-        # Lay out headings and rows, then draw the visible slice.
-        laid: list[tuple[str, object, int]] = []
+        # Lay out headings and rows, then draw the visible slice. Rows wrap so
+        # long firings (R16) are never truncated.
+        laid: list[tuple[str, object, int, tuple[str, ...] | None]] = []
         cursor = 0
         last_step = -1
         for step_index, row in rows:
             if step_index != last_step:
-                laid.append(("head", step_index, cursor))
+                laid.append(("head", step_index, cursor, None))
                 cursor += 22
                 last_step = step_index
-            laid.append(("row", row, cursor))
-            cursor += 18
+            prefix = "" if row.new else "· "
+            lines = tuple(theme.wrap(prefix + row.text, 15, view.width - 8))
+            laid.append(("row", row, cursor, lines))
+            cursor += 18 * len(lines)
         total = cursor
         self._log_max_scroll = max(0, total - view.height)
         if self.log_auto:
             self.log_scroll = self._log_max_scroll
         self.log_scroll = max(0, min(self.log_scroll, self._log_max_scroll))
         base_y = view.y - self.log_scroll
-        for kind, item, offset in laid:
+        for kind, item, offset, lines in laid:
             yy = base_y + offset
-            if yy + 18 < view.y or yy > view.bottom:
+            height = 22 if kind == "head" else 18 * len(lines)
+            if yy + height < view.y or yy > view.bottom:
                 continue
             if kind == "head":
                 theme.text(self.canvas, f"TURN {item + 1}", 15, theme.GOLD, (x, yy), bold=True)
@@ -777,12 +795,11 @@ class WatchView:
             else:
                 row: LogRow = item  # type: ignore[assignment]
                 color = theme.INK if row.new else theme.MUTED
-                prefix = "" if row.new else "· "
-                text = _fit(prefix + row.text, 15, view.width - 8)
-                rect = pygame.Rect(x, yy, view.width, 17)
+                rect = pygame.Rect(x, yy, view.width, height - 1)
                 if rect.collidepoint(self._mouse()):
                     pygame.draw.rect(self.canvas, theme.BG_PANEL_LIGHT, rect)
-                theme.text(self.canvas, text, 15, color, (x + 2, yy))
+                for j, line in enumerate(lines):
+                    theme.text(self.canvas, line, 15, color, (x + 2, yy + j * 18))
                 self._log_hits.append((rect, row))
 
     def _visible_log(self) -> list[tuple[int, LogRow]]:

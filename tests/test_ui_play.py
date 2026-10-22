@@ -120,3 +120,45 @@ def test_result_layout_keeps_board_and_buttons_clear(app):
     assert not board.colliderect(panel)
     for button in app._result_buttons():
         assert panel.contains(button)
+
+
+def test_watch_view_wraps_long_r16_lines_without_truncation(app):
+    """Watch AI inference log and trace wrap long R16 lines across rows without truncation."""
+    import pygame
+
+    from shifting_manor.trace import build_trace, format_firing
+    from shifting_manor.ui import theme
+    from shifting_manor.ui.watch import WatchView
+
+    store = build_trace("explorer", "HAUNT-4F2A", "b3")
+    r16 = next(f for f in store.steps[8].firings if f.rule_id == "R16")
+    text = format_firing(r16)
+
+    # 1. theme.wrap wraps without truncation
+    lines = theme.wrap(text, 15, 566)
+    assert len(lines) >= 2, "Long R16 line must wrap into at least 2 lines"
+    assert not any(line.endswith("…") for line in lines), (
+        "Lines must not be truncated with ellipsis"
+    )
+    font = theme.font(15)
+    for line in lines:
+        assert font.size(line)[0] <= 566
+    # Content preserved
+    assert " ".join(" ".join(lines).split()) == " ".join(text.split())
+
+    # 2. WatchView log tab draws wrapped multi-line row with enlarged hit rect
+    view = WatchView(store, to_logical=lambda p: p, on_exit=lambda: None)
+    canvas = pygame.Surface((1280, 720))
+    view.tab = 1
+    view.set_step(8)
+    view.draw(canvas)
+
+    r16_hits = [rect for rect, row in view._log_hits if row.text.startswith("R16")]
+    assert len(r16_hits) >= 1
+    for rect in r16_hits:
+        # A single line row has height 17; a 2-line wrapped row has height 35.
+        assert rect.height >= 35, f"Expected wrapped multi-line height >= 35, got {rect.height}"
+
+    # 3. WatchView trace tab draws without crashing
+    view.tab = 0
+    view.draw(canvas)

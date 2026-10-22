@@ -31,6 +31,8 @@ _FONTS: dict[tuple[int, bool], pygame.font.Font] = {}
 def font(size: int, bold: bool = False) -> pygame.font.Font:
     key = (size, bold)
     if key not in _FONTS:
+        if not pygame.font.get_init():
+            pygame.font.init()
         f = pygame.font.Font(None, size)
         f.set_bold(bold)
         _FONTS[key] = f
@@ -120,17 +122,35 @@ def mark(surface: pygame.Surface, rect: pygame.Rect, kind: str, alpha: int = 255
 
 
 def wrap(value: str, size: int, width: int, *, bold: bool = False) -> list[str]:
+    """Word-wrap ``value`` so every returned line fits ``width``; never truncates.
+
+    Words that are longer than the whole width (e.g. long ``PIT{(0,3),...}``
+    constraint tokens) are hard-broken instead of overflowing.
+    """
     font_obj = font(size, bold)
-    words = value.split()
     lines: list[str] = []
     line = ""
-    for word in words:
-        candidate = f"{line} {word}".strip()
+    for chunk in _chunks(value, font_obj, width):
+        candidate = f"{line} {chunk}".strip()
         if line and font_obj.size(candidate)[0] > width:
             lines.append(line)
-            line = word
+            line = chunk
         else:
             line = candidate
     if line:
         lines.append(line)
     return lines or [""]
+
+
+def _chunks(value: str, font_obj, width: int):
+    """Split on spaces, then hard-break any token that alone exceeds ``width``."""
+    for word in value.split():
+        start = 0
+        while start < len(word):
+            end = len(word)
+            while end > start + 1 and font_obj.size(word[start:end])[0] > width:
+                end -= 1
+            if font_obj.size(word[start:end])[0] > width:  # one glyph still too wide
+                end = start + 1
+            yield word[start:end]
+            start = end
