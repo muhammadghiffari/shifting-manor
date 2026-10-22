@@ -11,7 +11,7 @@ def test_cli_b3_full_game_verbose(capsys):
     assert code == 0
     assert "RESULT outcome=" in out
     assert "percepts=[" in out
-    assert "rules fired:" in out
+    assert "new:" in out
     assert "=>" in out
 
 

@@ -79,6 +79,7 @@ class Firing:
     premises: tuple[object, ...]
     conclusions: tuple[object, ...]
     turn: int
+    note: str = ""
 
 
 @dataclass

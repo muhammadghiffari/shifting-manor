@@ -91,7 +91,7 @@ Absence is information too: no Breeze means no pit in any neighbour.
 
 ### 6.6 Scoring
 
-Score = 1000 if escaped with heirloom + 200 if the ghost was banished − 10 per charm cast − 1 per action − 1000 on death. Star rating: 1 star = escaped, 2 stars = score ≥ 850, 3 stars = score ≥ 900 (tune after playtests).
+Score = 1000 if escaped with heirloom + 200 if the ghost was banished − 10 per charm cast − 1 per action − 1000 on death. Star rating uses par = the oracle's action count on the same seed: 3 stars = escaped with the heirloom in at most par + 15 actions; 2 stars = escaped with the heirloom (slower); 1 star = escaped empty-handed; 0 = died or stalled. Relative par keeps a fast map from handing out free 3-star runs.
 
 ### 6.7 The Shift (signature mechanic)
 

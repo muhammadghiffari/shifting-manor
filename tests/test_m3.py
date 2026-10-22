@@ -193,3 +193,30 @@ def test_sim_suite_smoke_and_json():
     assert data["agents"]["b3"]["wins"] >= 1
     assert len(data["records"]) == 4
     assert json.dumps(results)
+
+
+def test_suite_reports_ci_paired_tests_and_calibration():
+    results = run_suite(
+        runs=3,
+        modes=("explorer",),
+        agents=("b2", "b2b", "b3"),
+        seed_prefix="SMOKE-STATS",
+        progress=False,
+    )
+    data = results["modes"]["explorer"]
+    for metrics in data["agents"].values():
+        lo, hi = metrics["win_rate_ci95"]
+        assert 0.0 <= lo <= metrics["win_rate"] <= hi <= 1.0
+        assert set(metrics["stars"]) == {"0", "1", "2", "3"}
+    assert "b3_vs_b2" in data["paired"]
+    assert "b3_vs_b2b" in data["paired"]
+    assert set(data["calibration"]) == {"b2", "b2b", "b3"}
+
+
+def test_b3_gamble_decision_exposes_risks():
+    record = run_game("explorer", "CHECK-EXPLORER-0000", "b3")
+    assert record.gambles, "this seed should force at least one R22 action"
+    for gamble in record.gambles:
+        assert 0.0 <= gamble["target_risk"] <= 1.0
+        assert 0.0 <= gamble["step_risk"] <= 1.0
+        assert isinstance(gamble["died"], bool)
