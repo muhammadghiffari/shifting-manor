@@ -265,6 +265,19 @@ class KBAgent:
     def _gamble_target(self) -> Cell | None:
         assert self.kb is not None and self.model is not None
         candidates = self.kb.frontier()
+        # Global pit/ghost counting can prove a room risk-free that no local
+        # constraint names (risk 0 with no Safe fact); it is a strictly better
+        # gamble target than any frontier cell, so include those too.
+        zero_risk = [
+            (x, y)
+            for x in range(self.kb.info.size)
+            for y in range(self.kb.info.size)
+            if self.model.risk((x, y)) <= 1e-9
+            and not self.kb.has("Visited", (x, y))
+            and not self.kb.has("Pit", (x, y))
+            and not self.kb.has("Ghost", (x, y))
+        ]
+        candidates = sorted(set(candidates) | set(zero_risk))
         if not candidates:
             candidates = [
                 (x, y)
@@ -289,7 +302,12 @@ class KBAgent:
             )
             if route is None:
                 continue
-            risk = self.model.risk(cell)
+            # Death probability of the whole route, not just the target room:
+            # a safe detour beats a risky shortcut to an equally risky room.
+            survival = 1.0
+            for step_cell in route.cells[1:]:
+                survival *= 1.0 - min(max(self.model.risk(step_cell), 0.0), 1.0)
+            risk = 1.0 - survival
             utility = expected_utility(risk, route.steps, self._unknown_neighbours(cell))
             scored.append((-utility, route.steps, cell, utility))
         if not scored:

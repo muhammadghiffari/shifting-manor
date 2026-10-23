@@ -1,6 +1,6 @@
 # STATUS
 
-_Last updated by:_ coding agent · _Date:_ 2026-10-22 (PR1 Hardening complete; 251 tests passing)
+_Last updated by:_ coding agent · _Date:_ 2026-10-23 (PR2 Optimality audit complete; 268 tests passing)
 
 ## Done
 
@@ -17,9 +17,7 @@ _Last updated by:_ coding agent · _Date:_ 2026-10-22 (PR1 Hardening complete; 2
 - **M5.1 — Explainability review fixes** (PR #16, squash-merged `a2b2669`). R16 is now a logged derivation with `Rotated(wing, direction)` as its premise and per-item provenance edges from old to new facts/constraints; it counts in the KB tab. R17 log/proof lines include the actual safe path. `docs/CODE_TOUR.md` now separates the forward-chaining rules from enumeration/A*/gamble planner logic and names `KnowledgeBase.apply_shift`/`kb/transport.py` as R16's home. Screenshots were regenerated for the new R16/R17 lines.
 - **PR1 — Hardening** (PR #17). Verified `python -m shifting_manor --windowed --frames 30` exits 0; added subprocess smoke tests for all 5 scenes (title, mode select, play, watch AI, result); added CLI `--seed` flag coverage; added property/fuzz tests showing all 6 agents (`b0, b1, b2, b2b, b3, b4`) on random boards across all modes never crash; verified determinism of event logs and action sequences; added 4x rotation and cw/ccw transport identity tests; verified R01–R24 rule firings; added mutation regression tests verifying that disabling R16, R07, or enumeration fails tests; updated Watch AI inference log and trace view layouts to wrap long multi-line firings (such as long R16 aggregate transport lines) without truncation.
 
-## In progress
-
-- **PR2 — Optimality audit** (next). Exact posterior ground-truth tool (`tools/posterior.py`), B3 calibration analysis, 1000-reporting-seed failure classification (forced vs avoidable vs suboptimal gamble), B5 policy comparison, and `docs/OPTIMALITY_AUDIT.md`.
+- **PR2 — Optimality audit** (PR #18). Exact posterior ground truth (`tools/posterior.py`: enumerates initial-world pit masks × ghost candidates, filters on every percept plus survival; true world provably stays in support), `tools/audit.py` (parallel runner: B3/B5/B4 on 1,000 reporting seeds per mode, calibration, per-failure exact-route classification, Wilson CIs, McNemar), B5 agent (`shifting_manor/agents/b5.py`: same policy as B3 fed exact-posterior risks). Three root causes found by the classifier and fixed on the dev band: risk priced 1000× below the objective death price (`planner.RISK_LAMBDA` 1→1000), gamble utility charging only the target cell instead of the whole route (`kb_agent._gamble_target`), and counting-proven-zero rooms never entering the candidate set (`kb_agent`). Reporting result: B3 wins 949/919/827 per 1,000 (apprentice/explorer/haunted), calibration MAE vs exact 0.0024–0.0045, **0 avoidable and 0 suboptimal-gamble failures**, B3 ≡ B5 (0/0 discordant pairs in all modes, p = 1.0), B4 100%. Full report in `docs/OPTIMALITY_AUDIT.md`; per-seed records in `docs/audit_results.json`; 12 new tests (6 posterior incl. true-world support and visited-rot-back regressions, 5 audit incl. the λ regression seed SIM-APPRENTICE-10146, and a b5 fuzz case).
 
 ## Explicitly not done (PR1 scope)
 
@@ -49,6 +47,7 @@ python -m shifting_manor --mode explorer --seed HAUNT-4F2A --screenshot /tmp/sho
 python -m shifting_manor --demo --windowed --seed HAUNT-4F2A
 python -m shifting_manor.cli --agent b3 --mode explorer --seed HAUNT-4F2A --verbose
 python -m shifting_manor.sim --runs 200 --out sim/results.json
+python -m tools.audit --count 1000 --out docs/audit_results.json
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy pytest -q tests/test_entrypoint.py tests/test_ui_play.py
 ```
 
@@ -62,6 +61,9 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy pytest -q tests/test_entrypoint.py t
 - M4.1: 225 tests pass locally (adds 5 real-entry-point subprocess tests, delta/provenance/R16 tests, Wilson/McNemar/calibration tests, gamble logging and star tests). Ruff clean.
 - **M5: 232 tests pass locally** (adds trace/proof/shift tests, delta-only log tests, the no-pygame-import headless guard, and the `--demo` subprocess test). `ruff check .` and `ruff format --check .` pass. CI is green on Python 3.11 and 3.12 (run 39722346245).
 - **M5.1: 235 tests pass locally** (adds R16 log/stats/proof and R17 safe-path tests). `ruff check .` and `ruff format --check .` pass. CI is green on Python 3.11 and 3.12 (run 39725550501).
+- **PR1: 263 tests pass locally** (scene smoke tests, fuzz, determinism, mutation tests). Ruff clean. CI green.
+- **PR2: 263 tests pass locally** (251 baseline +6 exact-posterior tests incl. true-world support and visited-rot-back regressions, +5 audit tests incl. the SIM-APPRENTICE-10146 λ regression, the zero-risk-component classifier helper and the pygame-free import, +1 b5 fuzz case). Ruff clean.
+- **M4 reporting set (PR2): 1,000 seeds/mode, `SIM-<MODE>-10000..10999`** (`docs/audit_results.json`), B3 win rate 0.949 / 0.919 / 0.827 (apprentice/explorer/haunted), oracle 1.000 everywhere. 305 failures, **all classified forced** (0 avoidable, 0 suboptimal gamble). B3 vs B5 McNemar 0/0 p = 1.0 in all modes. Calibration MAE vs exact posterior 0.0045 / 0.0024 / 0.0029. See `docs/OPTIMALITY_AUDIT.md`.
 - **M5 reporting set: 200 seeds/mode, `SIM-<MODE>-0000..0199`** (`sim/results.json`), win rate:
   - Apprentice: b0 5.0%, b1 3.5%, b2/b2b/b3 94.5%, oracle 100%.
   - Explorer: b0 4.5%, b1 3.5%, b2 77.5%, b2b 83.5%, b3 91.5%, oracle 100%.
@@ -86,6 +88,9 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy pytest -q tests/test_entrypoint.py t
 - M5 demo seeds are HAUNT-4F2A, HAUNT-7C1D and HAUNT-5D7C; `--demo` loops them with a 3 s pause.
 - R16 is an event-driven logged derivation: one aggregate firing with `Rotated(wing, direction)` plus per-item provenance edges; it is skipped by the chainer but counted in the KB tab.
 - R17 appends `via safe path: ...` to its log/proof line, using the BFS parent map.
+- PR2: risk sensitivity `RISK_LAMBDA = 1000` — risk and utility's −1000 death term are the same quantity; the dev sweep shows a flat plateau from 10 to 1000. Gamble utility charges the whole route's death probability. Counting-proven-zero unvisited rooms join the gamble candidates.
+- PR2: the exact posterior conditions only the agent's current cell as safe (no visited⇒safe override); a shift can rotate hazards back into visited rooms.
+- PR2: a loss is "avoidable" only when a zero-risk route to a *winning objective* existed; refuge pockets where the agent could hide forever but never win do not count. Suboptimality compares whole-route exact death probability (1e-4 tie band), not the first step.
 
 ## Risks I see
 

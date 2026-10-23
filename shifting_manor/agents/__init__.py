@@ -19,6 +19,8 @@ ALIASES = {
     "caretaker": "b3",
     "b4": "b4",
     "oracle": "b4",
+    "b5": "b5",
+    "exact": "b5",
 }
 
 
@@ -32,6 +34,10 @@ def make_agent(name: str, info: GameInfo) -> Agent:
         agent = ReactiveAgent()
     elif key in ("b2", "b2b", "b3"):
         agent = KBAgent(key)
+    elif key == "b5":
+        from shifting_manor.agents.b5 import B5Agent
+
+        agent = B5Agent()
     else:
         from shifting_manor.agents.oracle import OracleAgent
 

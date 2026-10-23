@@ -87,6 +87,13 @@ def safe_route(kb: KnowledgeBase, start: Cell, goal: Cell) -> Route | None:
     return astar(start, {goal}, size, risk_of=lambda c: 0.0, blocked=blocked)
 
 
+# Risk weight for the survival term of A* edge costs: 1.0 + RISK_LAMBDA * -log(1-risk).
+# -log(1-risk) ~ risk for small risk, so lambda=1000 makes routing price death at
+# the same rate as the -1000 * risk term in expected_utility; a zero-risk detour
+# then always beats a risky shortcut to the same room (tools/audit.py found both).
+RISK_LAMBDA = 1000.0
+
+
 def cautious_route(
     kb: KnowledgeBase,
     start: Cell,
@@ -105,11 +112,18 @@ def cautious_route(
         blocked=blocked,
         avoid=avoid,
         avoid_penalty=avoid_penalty,
+        lambda_=RISK_LAMBDA,
     )
 
 
 def expected_utility(risk: float, path_cost: int, unknown_neighbours: int) -> float:
-    """R22 gamble score from ALGORITHMS.md 4."""
+    """R22 gamble score from ALGORITHMS.md 4.
+
+    `risk` is the death probability of the whole route: the product of step
+    survival probabilities (1 - risk(c)) over every cell entered en route,
+    target included — a safe detour beats a riskier shortcut even when both
+    end on cells with the same posterior risk.
+    """
     return -1000.0 * risk - path_cost + 0.5 * unknown_neighbours
 
 

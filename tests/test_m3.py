@@ -257,9 +257,9 @@ def test_mutation_disabling_enumeration_fails_risk_ranking(monkeypatch):
     assert (3, 1) not in mutated_model.entailed_pit
 
 
-@pytest.mark.parametrize("agent_name", ["b0", "b1", "b2", "b2b", "b3", "b4"])
+@pytest.mark.parametrize("agent_name", ["b0", "b1", "b2", "b2b", "b3", "b4", "b5"])
 def test_all_agents_never_crash_on_random_boards(agent_name):
-    """Property test: all 6 agents across all modes and random seeds run without crashing."""
+    """Property test: all 7 agents across all modes and random seeds run without crashing."""
     valid_outcomes = {
         "escaped_treasure",
         "escaped_empty",
