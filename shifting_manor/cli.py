@@ -27,7 +27,7 @@ def describe_events(events) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m shifting_manor.cli")
-    parser.add_argument("--agent", default="b3", help="b0|b1|b2|b2b|b3|b4/oracle")
+    parser.add_argument("--agent", default="b3", help="b0|b1|b2|b2b|b3|b4|b5")
     parser.add_argument("--mode", default="explorer", choices=["apprentice", "explorer", "haunted"])
     parser.add_argument("--seed", default="HAUNT-4F2A")
     parser.add_argument("--verbose", action="store_true", help="print every newly derived fact")
