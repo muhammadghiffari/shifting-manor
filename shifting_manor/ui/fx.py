@@ -498,3 +498,151 @@ def draw_stone_tile(
             (rect.x + 6, rect.y + 5),
             mono=True,
         )
+
+
+def render_lantern_emblem(size: int = 128) -> pygame.Surface:
+    """Render the ornate 4x-supersampled gothic lantern crest at ``size x size``."""
+    big = max(256, size * 4)
+    surf = pygame.Surface((big, big), pygame.SRCALPHA)
+
+    def pt(x: float, y: float) -> tuple[int, int]:
+        return (round(x * big / 64.0), round(y * big / 64.0))
+
+    def sc(v: float) -> int:
+        return max(1, round(v * big / 64.0))
+
+    # 1. Deep obsidian architectural crest with subtle vignette
+    pygame.draw.rect(surf, (11, 8, 18, 255), (sc(2), sc(2), sc(60), sc(60)), border_radius=sc(14))
+    for r in range(sc(30), 0, -4):
+        t = (1.0 - r / sc(30)) ** 1.4
+        col = (int(11 + 22 * t), int(8 + 16 * t), int(18 + 32 * t), 255)
+        pygame.draw.circle(surf, col, pt(32, 30), r)
+
+    # Clip crisp outer squircle mask so vignette stays inside rounded border
+    mask = pygame.Surface((big, big), pygame.SRCALPHA)
+    pygame.draw.rect(
+        mask, (255, 255, 255, 255), (sc(2), sc(2), sc(60), sc(60)), border_radius=sc(14)
+    )
+    surf.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+
+    # Outer antique-gold frame + softly alpha-blended inner filigree & shift arcs
+    pygame.draw.rect(
+        surf, (236, 188, 92, 255), (sc(2), sc(2), sc(60), sc(60)), sc(2.2), border_radius=sc(14)
+    )
+    filigree = pygame.Surface((big, big), pygame.SRCALPHA)
+    pygame.draw.rect(
+        filigree,
+        (236, 188, 92, 68),
+        (sc(6), sc(6), sc(52), sc(52)),
+        sc(1.0),
+        border_radius=sc(10.5),
+    )
+    for a, b in [((8.5, 32), (13.5, 32)), ((50.5, 32), (55.5, 32))]:
+        pygame.draw.line(filigree, (236, 188, 92, 72), pt(*a), pt(*b), sc(1.0))
+    pygame.draw.arc(
+        filigree,
+        (148, 228, 244, 96),
+        (sc(10.2), sc(10.2), sc(43.6), sc(43.6)),
+        math.radians(118),
+        math.radians(156),
+        sc(1.2),
+    )
+    pygame.draw.arc(
+        filigree,
+        (148, 228, 244, 52),
+        (sc(10.2), sc(10.2), sc(43.6), sc(43.6)),
+        math.radians(24),
+        math.radians(62),
+        sc(1.1),
+    )
+    for rx, ry in [(10.5, 10.5), (53.5, 10.5), (10.5, 53.5), (53.5, 53.5)]:
+        pygame.draw.circle(filigree, (236, 188, 92, 165), pt(rx, ry), sc(1.15))
+    surf.blit(filigree, (0, 0))
+
+    # Warm volumetric amber lantern aura
+    aura = pygame.Surface((big, big), pygame.SRCALPHA)
+    for r in range(sc(25), 0, -4):
+        f = (1.0 - r / sc(25)) ** 2.0
+        col = (255, int(172 + 40 * f), int(76 + 34 * f), int(18 * f))
+        pygame.draw.circle(aura, col, pt(32, 35.0), r)
+    surf.blit(aura, (0, 0))
+
+    # Hanging brass bail ring & finial
+    pygame.draw.circle(surf, (240, 194, 98, 255), pt(32, 12.4), sc(3.4), sc(1.9))
+    pygame.draw.polygon(surf, (230, 178, 78, 255), [pt(32, 15.2), pt(35.3, 18.2), pt(28.7, 18.2)])
+
+    # Gothic cupola dome & eaves brim
+    dome_pts = [
+        pt(32 - 9.2 * math.cos(math.pi * i / 16.0), 22.5 - 4.9 * math.sin(math.pi * i / 16.0))
+        for i in range(17)
+    ]
+    pygame.draw.polygon(surf, (226, 174, 76, 255), dome_pts)
+    pygame.draw.rect(
+        surf, (245, 206, 114, 255), (sc(19.2), sc(21.9), sc(25.6), sc(3.0)), border_radius=sc(1.4)
+    )
+    pygame.draw.line(surf, (255, 234, 174, 255), pt(20.8, 22.6), pt(43.2, 22.6), sc(0.8))
+
+    # Tapered warm glass chamber & tracery
+    glass_poly = [pt(23.0, 24.9), pt(41.0, 24.9), pt(39.0, 45.6), pt(25.0, 45.6)]
+    pygame.draw.polygon(surf, (252, 214, 134, 255), glass_poly)
+    inner_glass = [pt(25.1, 26.2), pt(38.9, 26.2), pt(37.5, 44.2), pt(26.5, 44.2)]
+    pygame.draw.polygon(surf, (255, 244, 204, 255), inner_glass)
+
+    tracery = pygame.Surface((big, big), pygame.SRCALPHA)
+    pygame.draw.arc(
+        tracery,
+        (176, 118, 36, 95),
+        (sc(23.4), sc(25.3), sc(17.2), sc(18.6)),
+        math.radians(15),
+        math.radians(165),
+        sc(1.1),
+    )
+    pygame.draw.line(tracery, (186, 132, 46, 115), pt(27.3, 25.0), pt(28.0, 45.4), sc(1.0))
+    pygame.draw.line(tracery, (186, 132, 46, 115), pt(36.7, 25.0), pt(36.0, 45.4), sc(1.0))
+    surf.blit(tracery, (0, 0))
+
+    # Sculpted 3-layer teardrop flame
+    flame_outer = [
+        pt(32.0, 28.0),
+        pt(34.4, 31.8),
+        pt(36.0, 35.6),
+        pt(35.7, 39.1),
+        pt(34.0, 41.2),
+        pt(32.0, 41.8),
+        pt(30.0, 41.2),
+        pt(28.3, 39.1),
+        pt(28.0, 35.6),
+        pt(29.6, 31.8),
+    ]
+    pygame.draw.polygon(surf, (242, 138, 48, 255), flame_outer)
+    flame_mid = [
+        pt(32.0, 30.2),
+        pt(33.8, 33.4),
+        pt(34.7, 36.6),
+        pt(34.0, 39.4),
+        pt(32.0, 40.4),
+        pt(30.0, 39.4),
+        pt(29.3, 36.6),
+        pt(30.2, 33.4),
+    ]
+    pygame.draw.polygon(surf, (255, 208, 102, 255), flame_mid)
+    flame_core = [
+        pt(32.0, 32.8),
+        pt(33.3, 35.6),
+        pt(33.4, 38.2),
+        pt(32.0, 39.5),
+        pt(30.6, 38.2),
+        pt(30.7, 35.6),
+    ]
+    pygame.draw.polygon(surf, (255, 253, 240, 255), flame_core)
+
+    # Brass tapered cage frame + stepped plinth base
+    pygame.draw.lines(surf, (232, 180, 82, 255), True, glass_poly, sc(2.3))
+    pygame.draw.rect(
+        surf, (238, 190, 96, 255), (sc(21.2), sc(45.4), sc(21.6), sc(2.8)), border_radius=sc(1.2)
+    )
+    pygame.draw.rect(
+        surf, (166, 113, 36, 255), (sc(18.6), sc(48.0), sc(26.8), sc(3.5)), border_radius=sc(1.6)
+    )
+    pygame.draw.line(surf, (250, 222, 144, 255), pt(20.4, 48.8), pt(43.6, 48.8), sc(0.85))
+    return pygame.transform.smoothscale(surf, (size, size))

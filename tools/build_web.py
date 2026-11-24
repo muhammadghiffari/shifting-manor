@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -102,115 +103,52 @@ LANDING_MEDIA = (
 )
 
 
-def _generate_favicon(dest: Path) -> None:
-    """Render an ornate 4x-supersampled gothic lantern emblem (128x128 favicon.png)."""
+FAVICON_LINKS = (
+    '    <link rel="icon" type="image/svg+xml" href="logo.svg?v=2" />\n'
+    '    <link rel="icon" type="image/png" sizes="128x128" href="favicon.png?v=2" />\n'
+    '    <link rel="shortcut icon" href="favicon.ico?v=2" />\n'
+    '    <link rel="apple-touch-icon" href="favicon.png?v=2" />'
+)
+
+
+def _generate_favicon(dest_png: Path, dest_ico: Path | None = None) -> None:
+    """Render ornate 4x-supersampled gothic lantern favicon.png (and optional favicon.ico)."""
     env = {**os.environ, "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy"}
+    ico_arg = repr(str(dest_ico)) if dest_ico is not None else "None"
     code = f"""
-import math
+import io
+import struct
+from pathlib import Path
 import pygame
+from shifting_manor.ui.fx import render_lantern_emblem
 
 pygame.init()
-S = 512  # 4x supersample for crisp anti-aliased bevels and flame curves
-surf = pygame.Surface((S, S), pygame.SRCALPHA)
+surf128 = render_lantern_emblem(128)
+buf128 = io.BytesIO()
+pygame.image.save(surf128, buf128, "favicon.png")
+Path({str(dest_png)!r}).write_bytes(buf128.getvalue())
 
-def pt(x, y):
-    return (int(round(x * S / 64.0)), int(round(y * S / 64.0)))
-
-def sc(v):
-    return max(1, int(round(v * S / 64.0)))
-
-# 1. Deep obsidian architectural crest with subtle vignette
-pygame.draw.rect(surf, (11, 8, 18, 255), (sc(2), sc(2), sc(60), sc(60)), border_radius=sc(14))
-for r in range(sc(30), 0, -4):
-    t = (1.0 - r / sc(30)) ** 1.4
-    col = (int(11 + 22 * t), int(8 + 16 * t), int(18 + 32 * t), 255)
-    pygame.draw.circle(surf, col, pt(32, 30), r)
-
-# Clip crisp outer squircle mask so vignette stays inside rounded border
-mask = pygame.Surface((S, S), pygame.SRCALPHA)
-pygame.draw.rect(mask, (255, 255, 255, 255), (sc(2), sc(2), sc(60), sc(60)), border_radius=sc(14))
-surf.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
-
-# Outer antique-gold frame + softly alpha-blended inner filigree & blueprint details
-pygame.draw.rect(surf, (236, 188, 92, 255), (sc(2), sc(2), sc(60), sc(60)), sc(2.2), border_radius=sc(14))
-
-filigree = pygame.Surface((S, S), pygame.SRCALPHA)
-pygame.draw.rect(filigree, (236, 188, 92, 68), (sc(6), sc(6), sc(52), sc(52)), sc(1.0), border_radius=sc(10.5))
-for a, b in [((8.5, 32), (13.5, 32)), ((50.5, 32), (55.5, 32))]:
-    pygame.draw.line(filigree, (236, 188, 92, 72), pt(*a), pt(*b), sc(1.0))
-pygame.draw.arc(filigree, (148, 228, 244, 96), (sc(10.2), sc(10.2), sc(43.6), sc(43.6)), math.radians(118), math.radians(156), sc(1.2))
-pygame.draw.arc(filigree, (148, 228, 244, 52), (sc(10.2), sc(10.2), sc(43.6), sc(43.6)), math.radians(24), math.radians(62), sc(1.1))
-for rx, ry in [(10.5, 10.5), (53.5, 10.5), (10.5, 53.5), (53.5, 53.5)]:
-    pygame.draw.circle(filigree, (236, 188, 92, 165), pt(rx, ry), sc(1.15))
-surf.blit(filigree, (0, 0))
-
-# 3. Warm volumetric amber lantern aura (properly alpha-blended onto dark crest)
-aura = pygame.Surface((S, S), pygame.SRCALPHA)
-for r in range(sc(25), 0, -4):
-    f = (1.0 - r / sc(25)) ** 2.0
-    col = (255, int(172 + 40 * f), int(76 + 34 * f), int(18 * f))
-    pygame.draw.circle(aura, col, pt(32, 35.0), r)
-surf.blit(aura, (0, 0))
-
-# 4. Hanging brass bail ring & finial
-pygame.draw.circle(surf, (240, 194, 98, 255), pt(32, 12.4), sc(3.4), sc(1.9))
-pygame.draw.polygon(surf, (230, 178, 78, 255), [pt(32, 15.2), pt(35.3, 18.2), pt(28.7, 18.2)])
-
-# 5. Gothic cupola dome & eaves brim
-dome_pts = []
-for i in range(17):
-    ang = math.pi * i / 16.0
-    x = 32 - 9.2 * math.cos(ang)
-    y = 22.5 - 4.9 * math.sin(ang)
-    dome_pts.append(pt(x, y))
-pygame.draw.polygon(surf, (226, 174, 76, 255), dome_pts)
-pygame.draw.rect(surf, (245, 206, 114, 255), (sc(19.2), sc(21.9), sc(25.6), sc(3.0)), border_radius=sc(1.4))
-pygame.draw.line(surf, (255, 234, 174, 255), pt(20.8, 22.6), pt(43.2, 22.6), sc(0.8))
-
-# 6. Tapered warm glass chamber with vertical glow gradient
-glass_poly = [pt(23.0, 24.9), pt(41.0, 24.9), pt(39.0, 45.6), pt(25.0, 45.6)]
-pygame.draw.polygon(surf, (252, 214, 134, 255), glass_poly)
-inner_glass = [pt(25.1, 26.2), pt(38.9, 26.2), pt(37.5, 44.2), pt(26.5, 44.2)]
-pygame.draw.polygon(surf, (255, 244, 204, 255), inner_glass)
-
-# Subtle alpha-blended gothic arch window tracery & vertical mullions
-tracery = pygame.Surface((S, S), pygame.SRCALPHA)
-pygame.draw.arc(tracery, (176, 118, 36, 95), (sc(23.4), sc(25.3), sc(17.2), sc(18.6)), math.radians(15), math.radians(165), sc(1.1))
-pygame.draw.line(tracery, (186, 132, 46, 115), pt(27.3, 25.0), pt(28.0, 45.4), sc(1.0))
-pygame.draw.line(tracery, (186, 132, 46, 115), pt(36.7, 25.0), pt(36.0, 45.4), sc(1.0))
-surf.blit(tracery, (0, 0))
-
-# 7. Sculpted teardrop flame (amber outer + cream core)
-flame_outer = [
-    pt(32.0, 28.0), pt(34.4, 31.8), pt(36.0, 35.6), pt(35.7, 39.1),
-    pt(34.0, 41.2), pt(32.0, 41.8), pt(30.0, 41.2), pt(28.3, 39.1),
-    pt(28.0, 35.6), pt(29.6, 31.8),
-]
-pygame.draw.polygon(surf, (242, 138, 48, 255), flame_outer)
-flame_mid = [
-    pt(32.0, 30.2), pt(33.8, 33.4), pt(34.7, 36.6), pt(34.0, 39.4),
-    pt(32.0, 40.4), pt(30.0, 39.4), pt(29.3, 36.6), pt(30.2, 33.4),
-]
-pygame.draw.polygon(surf, (255, 208, 102, 255), flame_mid)
-flame_core = [
-    pt(32.0, 32.8), pt(33.3, 35.6), pt(33.4, 38.2), pt(32.0, 39.5),
-    pt(30.6, 38.2), pt(30.7, 35.6),
-]
-pygame.draw.polygon(surf, (255, 253, 240, 255), flame_core)
-
-# 8. Brass tapered outer cage frame
-pygame.draw.lines(surf, (232, 180, 82, 255), True, glass_poly, sc(2.3))
-
-# 9. Stepped antique-brass plinth base
-pygame.draw.rect(surf, (238, 190, 96, 255), (sc(21.2), sc(45.4), sc(21.6), sc(2.8)), border_radius=sc(1.2))
-pygame.draw.rect(surf, (166, 113, 36, 255), (sc(18.6), sc(48.0), sc(26.8), sc(3.5)), border_radius=sc(1.6))
-pygame.draw.line(surf, (250, 222, 144, 255), pt(20.4, 48.8), pt(43.6, 48.8), sc(0.85))
-
-out = pygame.transform.smoothscale(surf, (128, 128))
-pygame.image.save(out, {str(dest)!r})
+ico_target = {ico_arg}
+if ico_target is not None:
+    entries = []
+    for sz in (32, 64):
+        s = render_lantern_emblem(sz)
+        b = io.BytesIO()
+        pygame.image.save(s, b, "icon.png")
+        entries.append((sz, b.getvalue()))
+    header = struct.pack("<HHH", 0, 1, len(entries))
+    offset = 6 + 16 * len(entries)
+    directory = bytearray()
+    payload = bytearray()
+    for sz, data in entries:
+        dim = 0 if sz >= 256 else sz
+        directory.extend(struct.pack("<BBBBHHII", dim, dim, 0, 0, 1, 32, len(data), offset))
+        payload.extend(data)
+        offset += len(data)
+    Path(ico_target).write_bytes(header + bytes(directory) + bytes(payload))
 pygame.quit()
 """
-    subprocess.run([sys.executable, "-c", code], env=env, check=True)
+    subprocess.run([sys.executable, "-c", code], cwd=str(ROOT), env=env, check=True)
 
 
 def stage_web_app(stage_dir: Path) -> Path:
@@ -270,6 +208,12 @@ def _patch_player_html(html_path: Path) -> None:
             html = html.replace("</head>", BROWSER_PATCH + "\n</head>", 1)
         else:
             html += BROWSER_PATCH
+    # Replace pygbag's default favicon link with cache-busted SVG + PNG + ICO icons
+    html = re.sub(
+        r'<link\s+rel=["\'](?:shortcut\s+)?icon["\'][^>]*>', "", html, flags=re.IGNORECASE
+    )
+    if "logo.svg?v=2" not in html and "</head>" in html:
+        html = html.replace("</head>", FAVICON_LINKS + "\n</head>", 1)
     if 'id="home-pill"' not in html and "<body>" in html:
         arrow_svg = (
             '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" '
@@ -302,6 +246,9 @@ def _install_landing_site(target: Path) -> None:
     logo_src = ROOT / "web" / "logo.svg"
     if logo_src.is_file():
         shutil.copy2(logo_src, target / "logo.svg")
+
+    if not (target / "favicon.png").is_file() or not (target / "favicon.ico").is_file():
+        _generate_favicon(target / "favicon.png", target / "favicon.ico")
 
     media_dst = target / "media"
     media_dst.mkdir(parents=True, exist_ok=True)
@@ -349,10 +296,8 @@ def build_web(out_dir: Path | None = None, *, stage_dir: Path | None = None) -> 
         shutil.rmtree(target)
     shutil.copytree(built_web, target)
 
-    # Replace pygbag's default snake favicon with our gothic lantern icon
-    custom_icon = stage / "favicon.png"
-    if custom_icon.is_file():
-        shutil.copy2(custom_icon, target / "favicon.png")
+    # Replace pygbag's default snake favicon with our gothic lantern PNG & ICO
+    _generate_favicon(target / "favicon.png", target / "favicon.ico")
 
     # Install interactive landing page at index.html and WASM game player at play.html
     _install_landing_site(target)
