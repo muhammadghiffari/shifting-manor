@@ -1,14 +1,14 @@
 <div align="center">
 
-<img src="docs/screens/01_title.png" alt="Shifting Manor Title Screen" width="760" />
+<img src="web/logo.svg" alt="Shifting Manor Emblem" width="84" />
 
 # Shifting Manor
 
 **A haunted-manor deduction game where entire 3×3 wings rotate 90° every few moves — playable manually, in Human vs AI Duel mode, or autonomously live by a 24-rule forward-chaining Caretaker AI.**
 
-[![Play Online Free](https://img.shields.io/badge/▶%20Play%20Online%20Free-GitHub%20Pages-ecbc5c?style=for-the-badge)](https://muhammadghiffari.github.io/shifting-manor/)
-[![Watch Real AI Live](https://img.shields.io/badge/🤖%20Watch%20Real%20AI%20Live-Autonomous%20B3-48d6c2?style=for-the-badge)](https://muhammadghiffari.github.io/shifting-manor/play.html?auto=1&agent=b3&mode=explorer&seed=HAUNT-4F2A)
-[![Duel vs AI](https://img.shields.io/badge/⚔%20Duel%20vs%20AI-Same%20Seed-b08ef2?style=for-the-badge)](https://muhammadghiffari.github.io/shifting-manor/play.html?duel=1&mode=explorer&seed=HAUNT-4F2A)
+[![Play Online Free](https://img.shields.io/badge/Play%20Online%20Free-GitHub%20Pages-ecbc5c?style=for-the-badge&logo=githubpages&logoColor=16100a)](https://muhammadghiffari.github.io/shifting-manor/)
+[![Watch Real AI Live](https://img.shields.io/badge/Watch%20Real%20AI%20Live-Autonomous%20B3-48d6c2?style=for-the-badge&logo=probot&logoColor=0e0b14)](https://muhammadghiffari.github.io/shifting-manor/play.html?auto=1&agent=b3&mode=explorer&seed=HAUNT-4F2A)
+[![Duel vs AI](https://img.shields.io/badge/Duel%20vs%20AI-Same%20Seed-b08ef2?style=for-the-badge&logo=webassembly&logoColor=0e0b14)](https://muhammadghiffari.github.io/shifting-manor/play.html?duel=1&mode=explorer&seed=HAUNT-4F2A)
 
 [![CI](https://github.com/muhammadghiffari/shifting-manor/actions/workflows/ci.yml/badge.svg)](https://github.com/muhammadghiffari/shifting-manor/actions/workflows/ci.yml)
 [![Deploy Web Game](https://github.com/muhammadghiffari/shifting-manor/actions/workflows/pages.yml/badge.svg)](https://github.com/muhammadghiffari/shifting-manor/actions/workflows/pages.yml)
@@ -17,6 +17,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-ecbc5c)](LICENSE)
 
 <br />
+
+<img src="docs/screens/01_title.png" alt="Shifting Manor Title Screen" width="760" />
 
 ### Live Engine Gameplay & Autonomous AI Demo
 
@@ -284,7 +286,7 @@ python -m http.server 8000 -d dist/web
 
 ---
 
-## Authors & License
+## Author & License
 
-Built by **Muhammad Ghiffari** and **Radithia Ary Winata** (2026).  
+Built by **Muhammad Ghiffari** (2026).  
 Code is licensed under the [MIT License](LICENSE). Bundled font licenses are tracked in [`assets/CREDITS.md`](assets/CREDITS.md).

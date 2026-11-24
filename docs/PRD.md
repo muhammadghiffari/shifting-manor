@@ -1,6 +1,6 @@
 # Shifting Manor — Product Requirements Document
 
-Version 1.1 · Course: Artificial Intelligence (Week 6, Knowledge) · Team of 2 (Muhammad Ghiffari, Radithia Ary Winata) · Presentation: next week · Status: approved for build
+Version 1.1 · Course: Artificial Intelligence (Week 6, Knowledge) · Author: Muhammad Ghiffari · Presentation: next week · Status: approved for build
 
 > Canonical copy of the PRD lives in this repo (`docs/PRD.md`). Section 16 was added in v1.1.
 
@@ -287,7 +287,7 @@ Shape plus colour everywhere, high-contrast option, reduce-motion toggle (no sha
 | **Should** | Duel mode, Simulation Lab, tutorial, marks rotating with wings, Why? proof tree, music layers, Run Card export |
 | **Could** | RL layer (7.7), daily seed, web build via pygbag, extra skins |
 
-Suggested 7-day plan: D1 engine, generator, tests · D2 KB, rules, inference, CLI demo · D3 UI skeleton and Play mode · D4 Watch AI mode, overlay, log · D5 shift choreography, audio, asset integration · D6 tutorial, Duel, Simulation Lab · D7 QA, rehearsal, recording a fallback video. (Day-by-day split for two people: `docs/TEAM_PLAN.md`.)
+Suggested 7-day plan: D1 engine, generator, tests · D2 KB, rules, inference, CLI demo · D3 UI skeleton and Play mode · D4 Watch AI mode, overlay, log · D5 shift choreography, audio, asset integration · D6 tutorial, Duel, Simulation Lab · D7 QA, rehearsal, recording a fallback video. (Day-by-day plan: `docs/TEAM_PLAN.md`.)
 
 ## 11. Definition of done
 

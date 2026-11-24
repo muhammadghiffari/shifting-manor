@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <radialGradient id="bg-grad" cx="50%" cy="46%" r="58%">
+      <stop offset="0%" stop-color="#221933"/>
+      <stop offset="56%" stop-color="#130E1D"/>
+      <stop offset="100%" stop-color="#0B0812"/>
+    </radialGradient>
+    <radialGradient id="lantern-halo" cx="50%" cy="55%" r="44%">
+      <stop offset="0%" stop-color="#FFCA6A" stop-opacity="0.52"/>
+      <stop offset="46%" stop-color="#E88E34" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#0E0B14" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold-frame" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBE096"/>
+      <stop offset="50%" stop-color="#E5B14B"/>
+      <stop offset="100%" stop-color="#9E6B1E"/>
+    </linearGradient>
+    <linearGradient id="brass-body" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F7D786"/>
+      <stop offset="48%" stop-color="#E4AE48"/>
+      <stop offset="100%" stop-color="#A87323"/>
+    </linearGradient>
+    <linearGradient id="glass-core" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFF9DF"/>
+      <stop offset="52%" stop-color="#FFE096"/>
+      <stop offset="100%" stop-color="#EEA238"/>
+    </linearGradient>
+    <linearGradient id="flame-outer" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFFDF0"/>
+      <stop offset="55%" stop-color="#FFB946"/>
+      <stop offset="100%" stop-color="#E46624"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Obsidian architectural crest plate -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bg-grad)" stroke="url(#gold-frame)" stroke-width="2.2"/>
+  <rect x="6" y="6" width="52" height="52" rx="10.5" stroke="#ECBC5C" stroke-opacity="0.24" stroke-width="1"/>
+
+  <!-- Subtle manor blueprint ticks & 90-degree shift orbit hints (clear of lantern) -->
+  <path d="M8.5 32H13.5M50.5 32H55.5" stroke="#ECBC5C" stroke-opacity="0.24" stroke-width="1" stroke-linecap="round"/>
+  <path d="M12.5 23.5A21.8 21.8 0 0 1 22 12.8" stroke="#94E4F4" stroke-opacity="0.34" stroke-width="1.25" stroke-linecap="round"/>
+  <path d="M51.5 23.5A21.8 21.8 0 0 0 42 12.8" stroke="#94E4F4" stroke-opacity="0.18" stroke-width="1.1" stroke-linecap="round"/>
+
+  <!-- 4 antique-brass corner rivets -->
+  <circle cx="10.5" cy="10.5" r="1.15" fill="#ECBC5C" fill-opacity="0.62"/>
+  <circle cx="53.5" cy="10.5" r="1.15" fill="#ECBC5C" fill-opacity="0.62"/>
+  <circle cx="10.5" cy="53.5" r="1.15" fill="#ECBC5C" fill-opacity="0.62"/>
+  <circle cx="53.5" cy="53.5" r="1.15" fill="#ECBC5C" fill-opacity="0.62"/>
+
+  <!-- Warm volumetric amber aura -->
+  <circle cx="32" cy="35" r="24" fill="url(#lantern-halo)"/>
+
+  <!-- Top hanging bail ring & finial -->
+  <circle cx="32" cy="12.4" r="3.1" stroke="url(#brass-body)" stroke-width="2.0"/>
+  <path d="M32 15.3L35.2 18.2H28.8L32 15.3Z" fill="url(#brass-body)"/>
+
+  <!-- Gothic tiered cupola roof & eaves -->
+  <path d="M22.8 22.6C23.8 18.9 27.3 17.6 32 17.6C36.7 17.6 40.2 18.9 41.2 22.6H22.8Z" fill="url(#brass-body)"/>
+  <rect x="19.2" y="21.9" width="25.6" height="3.0" rx="1.4" fill="url(#gold-frame)"/>
+
+  <!-- Tapered glowing glass chamber -->
+  <polygon points="23.0,24.9 41.0,24.9 39.0,45.6 25.0,45.6" fill="url(#glass-core)"/>
+  <!-- Subtle gothic pointed-arch window tracery -->
+  <path d="M24.4 33.4C26.3 28.4 29.2 26.2 32 25.4C34.8 26.2 37.7 28.4 39.6 33.4" stroke="#B77D26" stroke-opacity="0.38" stroke-width="1.15" fill="none"/>
+
+  <!-- Sculpted inner lantern flame -->
+  <path d="M32 28.2C32 28.2 36.1 33.4 36.1 37.1C36.1 39.7 34.3 41.6 32 41.6C29.7 41.6 27.9 39.7 27.9 37.1C27.9 33.4 32 28.2 32 28.2Z" fill="url(#flame-outer)"/>
+  <path d="M32 32.3C32 32.3 34.0 35.1 34.0 37.2C34.0 38.6 33.1 39.7 32 39.7C30.9 39.7 30.0 38.6 30.0 37.2C30.0 35.1 32 32.3 32 32.3Z" fill="#FFFDF4"/>
+
+  <!-- Brass tapered cage struts -->
+  <polygon points="23.0,24.9 41.0,24.9 39.0,45.6 25.0,45.6" stroke="url(#brass-body)" stroke-width="2.3" stroke-linejoin="round"/>
+  <line x1="27.3" y1="24.9" x2="28.0" y2="45.6" stroke="#BA822B" stroke-opacity="0.45" stroke-width="1.0"/>
+  <line x1="36.7" y1="24.9" x2="36.0" y2="45.6" stroke="#BA822B" stroke-opacity="0.45" stroke-width="1.0"/>
+
+  <!-- Stepped antique-brass plinth base -->
+  <rect x="21.2" y="45.4" width="21.6" height="2.8" rx="1.2" fill="url(#gold-frame)"/>
+  <rect x="18.6" y="48.0" width="26.8" height="3.5" rx="1.6" fill="#A67123"/>
+  <line x1="20.4" y1="48.8" x2="43.6" y2="48.8" stroke="#F8DA8A" stroke-opacity="0.65" stroke-width="0.9" stroke-linecap="round"/>
+</svg>

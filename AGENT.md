@@ -202,12 +202,12 @@ You are authorised to create and configure **one** repository. Use the authentic
    - **Description:** `Haunted-manor deduction game with a rule-based, forward-chaining Caretaker AI. AI course Week 6 project (Python, pygame-ce).`
    - **Topics:** `python`, `pygame`, `artificial-intelligence`, `expert-system`, `forward-chaining`, `knowledge-based-agent`, `wumpus-world`, `game-ai`, `education`.
    - Default branch `main`. Enable Issues. No wiki needed.
-2. **License:** MIT (file `LICENSE` already in this folder; copyright holders Muhammad Ghiffari and Radithia Ary Winata, 2026). Art/audio licensing is tracked per-file in `assets/CREDITS.md`; do not relabel third-party assets as MIT.
+2. **License:** MIT (file `LICENSE` already in this folder; copyright holder Muhammad Ghiffari, 2026). Art/audio licensing is tracked per-file in `assets/CREDITS.md`; do not relabel third-party assets as MIT.
 3. Push the initial commit from this folder as-is (`chore: initial handover bundle`). Confirm `.gitignore` excludes `__pycache__`, `.venv`, `dist`, `*.pyc`, `sim/results_tmp/`, and OS junk.
 4. Create GitHub **milestones** M0–M7 and one issue per milestone containing its acceptance criteria (copy from Section 8). Labels: `engine`, `kb`, `agent`, `ui`, `audio`, `assets`, `docs`, `bug`, `blocked`.
 5. Branching: `main` is always green. Work on `feat/m1-engine`, `feat/m2-kb`, and so on; open a PR per milestone with a checklist and test output; merge (squash) only when CI is green. If branch protection is not available on the plan, just follow the rule by hand and note it in `DECISIONS.md`.
 6. CI: `.github/workflows/ci.yml` is provided (ruff + pytest, Python 3.11 and 3.12). Make sure it passes on the first push; fix the skeleton if not.
-7. **Collaborator:** do NOT guess usernames. Write in `STATUS.md` under "Needs human": "Invite Radithia Ary Winata as collaborator (need GitHub username)".
+7. **Solo author:** Muhammad Ghiffari is the sole developer and owner of this repository.
 8. Never force-push `main`, never delete branches you did not create, never commit secrets or personal data, never publish releases.
 
 ## 13. Overnight protocol (the human is asleep)
