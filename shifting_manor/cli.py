@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import textwrap
 
 from shifting_manor.agents import make_agent
 from shifting_manor.engine.game import Game
@@ -63,7 +64,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"     new: {','.join(ids)}")
         for firing in explanation.firings:
             if firing.rule_id == "R16":
-                print(f"     {format_firing(firing)}")
+                # R16 aggregate lines list every transported fact; wrap so the
+                # log stays readable in an 80-column terminal.
+                for part in textwrap.wrap(format_firing(firing), width=72):
+                    print(f"     {part}")
                 if args.verbose_all:
                     for conclusion in firing.conclusions:
                         print(f"       moved {conclusion!r}")

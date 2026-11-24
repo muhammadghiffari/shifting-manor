@@ -70,7 +70,7 @@ def _zero_risk_component(pos: Cell, size: int, post: ExactPosterior) -> dict[Cel
     return dist
 
 
-def audit_single_seed(mode: str, seed: str) -> SeedAuditResult:
+def audit_single_seed(mode: str, seed: str, *, skip_b5: bool = False) -> SeedAuditResult:
     # 1. Oracle run (B4) for par and validation
     g4 = Game(mode, seed)
     b4 = make_agent("b4", g4.info())
@@ -220,18 +220,22 @@ def audit_single_seed(mode: str, seed: str) -> SeedAuditResult:
                 detail=f"No certain winning route on remaining oil: outcome={b3_outcome}",
             )
 
-    # 3. B5 run
-    g5 = Game(mode, seed)
-    b5 = make_agent("b5", g5.info())
-    p5, e5 = g5.observe(), []
-    while not g5.state.done:
-        a = b5.act(p5, e5)
-        res = g5.step(a)
-        p5, e5 = res.percepts, res.events
-    b5_outcome = g5.state.outcome or "unknown"
-    b5_score = g5.score()
-    b5_actions = g5.state.actions_taken
-    b5_stars = g5.stars(b4_par)
+    # 3. B5 run (skippable: the exact posterior is the audit's own ground truth and
+    # mutation tests only read B3 columns; skipping halves the cost)
+    if skip_b5:
+        b5_outcome, b5_score, b5_actions, b5_stars = b3_outcome, b3_score, b3_actions, b3_stars
+    else:
+        g5 = Game(mode, seed)
+        b5 = make_agent("b5", g5.info())
+        p5, e5 = g5.observe(), []
+        while not g5.state.done:
+            a = b5.act(p5, e5)
+            res = g5.step(a)
+            p5, e5 = res.percepts, res.events
+        b5_outcome = g5.state.outcome or "unknown"
+        b5_score = g5.score()
+        b5_actions = g5.state.actions_taken
+        b5_stars = g5.stars(b4_par)
 
     return SeedAuditResult(
         seed=seed,

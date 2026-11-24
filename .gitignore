@@ -8,5 +8,6 @@ build/
 .pytest_cache/
 .ruff_cache/
 sim/results_tmp/
+runcards/
 .DS_Store
 Thumbs.db

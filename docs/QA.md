@@ -20,7 +20,7 @@ On a `ShiftApplied` event, R16 applies the same cell mapping that the engine use
 
 ### 5. Why not reinforcement learning?
 
-The brief asks for a rule-based, explainable agent. This agent's action is selected from explicit derived facts and routes (`shifting_manor/agents/kb_agent.py:159-197`), and every conclusion has a firing and a proof tree. There is no training loop, reward model or learned weights to explain. RL was recorded as optional and out of scope in `DECISIONS.md:37`.
+The brief asks for a rule-based, explainable agent. This agent's action is selected from explicit derived facts and routes (`shifting_manor/agents/kb_agent.py:159-197`), and every conclusion has a firing and a proof tree. There is no training loop, reward model or learned weights to explain. RL was recorded as optional and out of scope in `DECISIONS.md:48`.
 
 ### 6. What is the difference between B2, B2b and B3?
 
@@ -44,7 +44,7 @@ The engine emits `ShiftApplied` with the exact mapping. B3's KB applies R16 befo
 
 ### 11. Why does the log not show every rule firing?
 
-Because many R08/R17 conclusions are re-derived every turn. `KnowledgeBase.run` separates fresh conclusions (`firings`) from the complete set (`all_firings`) (`shifting_manor/kb/base.py:280-334`). Watch AI builds `rows_new` from `new=True` only (`shifting_manor/ui/watch.py:105-108,788-795`). The complete set is kept for tests and debugging; the log filter UI was dropped for M5.
+Because many R08/R17 conclusions are re-derived every turn. `KnowledgeBase.run` separates fresh conclusions (`firings`) from the complete set (`all_firings`) (`shifting_manor/kb/base.py:280-334`). Watch AI builds `rows_new` from `new=True` only (`shifting_manor/ui/watch.py:105-108,805-812`). The complete set is kept for tests and debugging; the log filter UI was dropped for M5.
 
 ### 12. How does the “Why?” proof tree work?
 

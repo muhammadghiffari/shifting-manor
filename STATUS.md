@@ -1,6 +1,6 @@
 # STATUS
 
-_Last updated by:_ coding agent · _Date:_ 2026-10-23 (PR2 Optimality audit complete; 268 tests passing)
+_Last updated by:_ coding agent · _Date:_ 2026-11-24 (End-to-End Interactive Edition complete: Manual + Live Autonomous AI + Duel + Tutorial + Guide + SimLab + Settings + Procedural Audio)
 
 ## Done
 
@@ -18,18 +18,16 @@ _Last updated by:_ coding agent · _Date:_ 2026-10-23 (PR2 Optimality audit comp
 - **PR1 — Hardening** (PR #17). Verified `python -m shifting_manor --windowed --frames 30` exits 0; added subprocess smoke tests for all 5 scenes (title, mode select, play, watch AI, result); added CLI `--seed` flag coverage; added property/fuzz tests showing all 6 agents (`b0, b1, b2, b2b, b3, b4`) on random boards across all modes never crash; verified determinism of event logs and action sequences; added 4x rotation and cw/ccw transport identity tests; verified R01–R24 rule firings; added mutation regression tests verifying that disabling R16, R07, or enumeration fails tests; updated Watch AI inference log and trace view layouts to wrap long multi-line firings (such as long R16 aggregate transport lines) without truncation.
 
 - **PR2 — Optimality audit** (PR #18, squash-merged `a415a48`). Exact posterior ground truth (`tools/posterior.py`: enumerates initial-world pit masks × ghost candidates, filters on every percept plus survival; true world provably stays in support), `tools/audit.py` (parallel runner: B3/B5/B4 on 1,000 reporting seeds per mode, calibration, per-failure exact-route classification, Wilson CIs, McNemar), B5 agent (`shifting_manor/agents/b5.py`: same policy as B3 fed exact-posterior risks). Three root causes found by the classifier and fixed on the dev band: risk priced 1000× below the objective death price (`planner.RISK_LAMBDA` 1→1000), gamble utility charging only the target cell instead of the whole route (`kb_agent._gamble_target`), and counting-proven-zero rooms never entering the candidate set (`kb_agent`). Reporting result: B3 wins 949/919/827 per 1,000 (apprentice/explorer/haunted), calibration MAE vs exact 0.0024–0.0045, **0 avoidable and 0 suboptimal-gamble failures**, B3 ≡ B5 (0/0 discordant pairs in all modes, p = 1.0), B4 100%. Full report in `docs/OPTIMALITY_AUDIT.md`; per-seed records in `docs/audit_results.json`; 12 new tests (6 posterior incl. true-world support and visited-rot-back regressions, 5 audit incl. the λ regression seed SIM-APPRENTICE-10146, and a b5 fuzz case).
+- **M6 & M7 — End-to-End Interactive Upgrade (Manual + Real Autonomous Live AI + UX Overhaul).**
+  - Fixed two critical Play-mode gaps: added explicit manual `Leave Manor [E]` action/button at Entrance `(0,0)` and wired atmospheric flickering radial lantern Fog-of-War into `_draw_board`.
+  - Built **Real Autonomous Live AI Play** (`shifting_manor/ui/live_ai.py` + `App.start_live_ai` + `--auto --agent`): runs any real agent (`b3, b5, b2b, b2, b1, b0, b4`) live turn-by-turn on the active game board with planned route stepping-stones, live belief/risk overlay (`B`), streaming forward-chaining Inference Log, 24-rule KB heat bars, live `Why?` proof tree (`W`), speed `0.5×–4×`, Pause/Step/Fast-Finish, seamless mid-game Take Over / AI Auto-Play (`T`), and fair zero-cheating **AI Hint (`I`)**.
+  - Built **Human vs AI Duel** (`--duel`), **Interactive 4-Lesson Playable Tutorial** (`shifting_manor/ui/tutorial.py`, `--tutorial`), **4-Tab Visual Field Guide** (`shifting_manor/ui/guide.py`, `H`), **Simulation Lab** (`shifting_manor/ui/simlab.py`, `F2`, cached 200-seed charts + live 30-seed runner), **Settings & Accessibility Overlay** (`shifting_manor/ui/settings.py`, `O`), **Procedural Gothic Audio** (`shifting_manor/ui/audio.py`), **Particles/Beams/Sprites** (`shifting_manor/ui/fx.py`), **Run Card PNG Export (`S`)**, and **Presenter Overlay (`F1`)**.
+  - Upgraded **Watch AI** (`watch.py`): moved Thought Banner above the board (zero row-5 overlap), added step-back (`Left`), 0.5× speed, `NEW ONLY / ALL` log filter, KB heat bars, hover risk tooltips, and DejaVu typography with zero missing-glyph boxes.
+  - Added `tests/test_ui_end_to_end.py` and regenerated all screenshots in `docs/screens/`.
 
-## Explicitly not done (PR1 scope)
+## Explicitly not done
 
-- KB tab heat bars.
-- Step-back.
-- Log-filter UI.
-- Duel.
-- SimLab.
-- Tutorial.
-- Audio polish.
-
-These are named in the PR and `DECISIONS.md`; they are not hidden omissions.
+- Optional RL meta-controller (PRD 7.7 — deliberately excluded from core rule-based expert system per course brief).
 
 ## Blocked
 
