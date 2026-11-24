@@ -1,6 +1,6 @@
 # Kickoff prompt (paste into the coding agent)
 
-You are the coding agent for the project in this folder (Shifting Manor). The humans (Muhammad Ghiffari and Radithia Ary Winata) are asleep and will review in the morning.
+You are the coding agent for the project in this folder (Shifting Manor). The author (Muhammad Ghiffari) is asleep and will review in the morning.
 
 1. Read `AGENT.md` completely, then `docs/PRD.md`, `docs/ALGORITHMS.md`, `docs/TEAM_PLAN.md`, `ASSETS.md`.
 2. Do **Section 12 (GitHub setup)** of `AGENT.md` first: create the private repo `shifting-manor` with the given description, topics and MIT license, push this folder as the initial commit, create milestones/issues, confirm CI passes.

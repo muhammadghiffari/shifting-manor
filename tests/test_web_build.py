@@ -85,6 +85,7 @@ def test_landing_page_and_install_site(tmp_path):
     )
     _install_landing_site(target)
     assert "wing-grid" in (target / "index.html").read_text(encoding="utf-8")
+    assert (target / "logo.svg").is_file()
     player = (target / "play.html").read_text(encoding="utf-8")
     assert 'id="home-pill"' in player
     assert "Shifting Manor is ready" in player

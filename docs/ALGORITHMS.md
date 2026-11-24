@@ -1,6 +1,6 @@
 # Algorithms and why we chose them
 
-Audience: the two team members, the lecturer, and the coding agent. Short on theory, long on reasons.
+Audience: the author (Muhammad Ghiffari), the lecturer, and the coding agent. Short on theory, long on reasons.
 
 ## 1. The stack at a glance
 

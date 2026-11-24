@@ -58,6 +58,9 @@ BROWSER_PATCH = """
     top: 10px;
     left: 10px;
     z-index: 999998;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 6px 13px;
     border-radius: 999px;
     background: rgba(23, 18, 34, 0.72);
@@ -100,23 +103,111 @@ LANDING_MEDIA = (
 
 
 def _generate_favicon(dest: Path) -> None:
-    """Render a crisp 64x64 gothic golden lantern favicon.png headlessly."""
+    """Render an ornate 4x-supersampled gothic lantern emblem (128x128 favicon.png)."""
     env = {**os.environ, "SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "dummy"}
     code = f"""
+import math
 import pygame
+
 pygame.init()
-surf = pygame.Surface((64, 64), pygame.SRCALPHA)
-pygame.draw.rect(surf, (14, 11, 20, 255), (0, 0, 64, 64), border_radius=14)
-pygame.draw.rect(surf, (236, 188, 92, 255), (2, 2, 60, 60), 3, border_radius=12)
-for r in range(24, 0, -2):
-    f = (1 - r / 24) ** 1.6
-    col = (int(14 + 145 * f), int(11 + 92 * f), int(20 + 30 * f), 255)
-    pygame.draw.circle(surf, col, (32, 34), r)
-pygame.draw.rect(surf, (236, 188, 92, 255), (21, 20, 22, 26), border_radius=4)
-pygame.draw.rect(surf, (255, 240, 196, 255), (25, 24, 14, 18), border_radius=2)
-pygame.draw.arc(surf, (236, 188, 92, 255), (23, 10, 18, 16), 0.0, 3.14159, 3)
-pygame.draw.rect(surf, (182, 140, 68, 255), (18, 45, 28, 5), border_radius=2)
-pygame.image.save(surf, {str(dest)!r})
+S = 512  # 4x supersample for crisp anti-aliased bevels and flame curves
+surf = pygame.Surface((S, S), pygame.SRCALPHA)
+
+def pt(x, y):
+    return (int(round(x * S / 64.0)), int(round(y * S / 64.0)))
+
+def sc(v):
+    return max(1, int(round(v * S / 64.0)))
+
+# 1. Deep obsidian architectural crest with subtle vignette
+pygame.draw.rect(surf, (11, 8, 18, 255), (sc(2), sc(2), sc(60), sc(60)), border_radius=sc(14))
+for r in range(sc(30), 0, -4):
+    t = (1.0 - r / sc(30)) ** 1.4
+    col = (int(11 + 22 * t), int(8 + 16 * t), int(18 + 32 * t), 255)
+    pygame.draw.circle(surf, col, pt(32, 30), r)
+
+# Clip crisp outer squircle mask so vignette stays inside rounded border
+mask = pygame.Surface((S, S), pygame.SRCALPHA)
+pygame.draw.rect(mask, (255, 255, 255, 255), (sc(2), sc(2), sc(60), sc(60)), border_radius=sc(14))
+surf.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+
+# Outer antique-gold frame + softly alpha-blended inner filigree & blueprint details
+pygame.draw.rect(surf, (236, 188, 92, 255), (sc(2), sc(2), sc(60), sc(60)), sc(2.2), border_radius=sc(14))
+
+filigree = pygame.Surface((S, S), pygame.SRCALPHA)
+pygame.draw.rect(filigree, (236, 188, 92, 68), (sc(6), sc(6), sc(52), sc(52)), sc(1.0), border_radius=sc(10.5))
+for a, b in [((8.5, 32), (13.5, 32)), ((50.5, 32), (55.5, 32))]:
+    pygame.draw.line(filigree, (236, 188, 92, 72), pt(*a), pt(*b), sc(1.0))
+pygame.draw.arc(filigree, (148, 228, 244, 96), (sc(10.2), sc(10.2), sc(43.6), sc(43.6)), math.radians(118), math.radians(156), sc(1.2))
+pygame.draw.arc(filigree, (148, 228, 244, 52), (sc(10.2), sc(10.2), sc(43.6), sc(43.6)), math.radians(24), math.radians(62), sc(1.1))
+for rx, ry in [(10.5, 10.5), (53.5, 10.5), (10.5, 53.5), (53.5, 53.5)]:
+    pygame.draw.circle(filigree, (236, 188, 92, 165), pt(rx, ry), sc(1.15))
+surf.blit(filigree, (0, 0))
+
+# 3. Warm volumetric amber lantern aura (properly alpha-blended onto dark crest)
+aura = pygame.Surface((S, S), pygame.SRCALPHA)
+for r in range(sc(25), 0, -4):
+    f = (1.0 - r / sc(25)) ** 2.0
+    col = (255, int(172 + 40 * f), int(76 + 34 * f), int(18 * f))
+    pygame.draw.circle(aura, col, pt(32, 35.0), r)
+surf.blit(aura, (0, 0))
+
+# 4. Hanging brass bail ring & finial
+pygame.draw.circle(surf, (240, 194, 98, 255), pt(32, 12.4), sc(3.4), sc(1.9))
+pygame.draw.polygon(surf, (230, 178, 78, 255), [pt(32, 15.2), pt(35.3, 18.2), pt(28.7, 18.2)])
+
+# 5. Gothic cupola dome & eaves brim
+dome_pts = []
+for i in range(17):
+    ang = math.pi * i / 16.0
+    x = 32 - 9.2 * math.cos(ang)
+    y = 22.5 - 4.9 * math.sin(ang)
+    dome_pts.append(pt(x, y))
+pygame.draw.polygon(surf, (226, 174, 76, 255), dome_pts)
+pygame.draw.rect(surf, (245, 206, 114, 255), (sc(19.2), sc(21.9), sc(25.6), sc(3.0)), border_radius=sc(1.4))
+pygame.draw.line(surf, (255, 234, 174, 255), pt(20.8, 22.6), pt(43.2, 22.6), sc(0.8))
+
+# 6. Tapered warm glass chamber with vertical glow gradient
+glass_poly = [pt(23.0, 24.9), pt(41.0, 24.9), pt(39.0, 45.6), pt(25.0, 45.6)]
+pygame.draw.polygon(surf, (252, 214, 134, 255), glass_poly)
+inner_glass = [pt(25.1, 26.2), pt(38.9, 26.2), pt(37.5, 44.2), pt(26.5, 44.2)]
+pygame.draw.polygon(surf, (255, 244, 204, 255), inner_glass)
+
+# Subtle alpha-blended gothic arch window tracery & vertical mullions
+tracery = pygame.Surface((S, S), pygame.SRCALPHA)
+pygame.draw.arc(tracery, (176, 118, 36, 95), (sc(23.4), sc(25.3), sc(17.2), sc(18.6)), math.radians(15), math.radians(165), sc(1.1))
+pygame.draw.line(tracery, (186, 132, 46, 115), pt(27.3, 25.0), pt(28.0, 45.4), sc(1.0))
+pygame.draw.line(tracery, (186, 132, 46, 115), pt(36.7, 25.0), pt(36.0, 45.4), sc(1.0))
+surf.blit(tracery, (0, 0))
+
+# 7. Sculpted teardrop flame (amber outer + cream core)
+flame_outer = [
+    pt(32.0, 28.0), pt(34.4, 31.8), pt(36.0, 35.6), pt(35.7, 39.1),
+    pt(34.0, 41.2), pt(32.0, 41.8), pt(30.0, 41.2), pt(28.3, 39.1),
+    pt(28.0, 35.6), pt(29.6, 31.8),
+]
+pygame.draw.polygon(surf, (242, 138, 48, 255), flame_outer)
+flame_mid = [
+    pt(32.0, 30.2), pt(33.8, 33.4), pt(34.7, 36.6), pt(34.0, 39.4),
+    pt(32.0, 40.4), pt(30.0, 39.4), pt(29.3, 36.6), pt(30.2, 33.4),
+]
+pygame.draw.polygon(surf, (255, 208, 102, 255), flame_mid)
+flame_core = [
+    pt(32.0, 32.8), pt(33.3, 35.6), pt(33.4, 38.2), pt(32.0, 39.5),
+    pt(30.6, 38.2), pt(30.7, 35.6),
+]
+pygame.draw.polygon(surf, (255, 253, 240, 255), flame_core)
+
+# 8. Brass tapered outer cage frame
+pygame.draw.lines(surf, (232, 180, 82, 255), True, glass_poly, sc(2.3))
+
+# 9. Stepped antique-brass plinth base
+pygame.draw.rect(surf, (238, 190, 96, 255), (sc(21.2), sc(45.4), sc(21.6), sc(2.8)), border_radius=sc(1.2))
+pygame.draw.rect(surf, (166, 113, 36, 255), (sc(18.6), sc(48.0), sc(26.8), sc(3.5)), border_radius=sc(1.6))
+pygame.draw.line(surf, (250, 222, 144, 255), pt(20.4, 48.8), pt(43.6, 48.8), sc(0.85))
+
+out = pygame.transform.smoothscale(surf, (128, 128))
+pygame.image.save(out, {str(dest)!r})
 pygame.quit()
 """
     subprocess.run([sys.executable, "-c", code], env=env, check=True)
@@ -180,9 +271,15 @@ def _patch_player_html(html_path: Path) -> None:
         else:
             html += BROWSER_PATCH
     if 'id="home-pill"' not in html and "<body>" in html:
+        arrow_svg = (
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" '
+            'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" '
+            'stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/>'
+            '<polyline points="12 19 5 12 12 5"/></svg>'
+        )
         html = html.replace(
             "<body>",
-            '<body>\n    <a id="home-pill" href="index.html">← Home</a>',
+            f'<body>\n    <a id="home-pill" href="index.html">{arrow_svg}<span>Home</span></a>',
             1,
         )
     html_path.write_text(html, encoding="utf-8")
@@ -201,6 +298,10 @@ def _install_landing_site(target: Path) -> None:
         shutil.copy2(landing_src, target / "index.html")
     else:
         shutil.copy2(play_html, target / "index.html")
+
+    logo_src = ROOT / "web" / "logo.svg"
+    if logo_src.is_file():
+        shutil.copy2(logo_src, target / "logo.svg")
 
     media_dst = target / "media"
     media_dst.mkdir(parents=True, exist_ok=True)

@@ -92,7 +92,6 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy pytest -q tests/test_entrypoint.py t
 
 ## Risks I see
 
-- The repo is private and has no collaborator yet (see Needs human).
 - The five Watch AI screenshots were regenerated for the R16/R17 changes; they still need a human visual review on the presentation screen.
 - The B2b-vs-B2 result is borderline on Explorer (p = 0.052) and null on Haunted; do not present it as a win.
 - CI installs pygame-ce from PyPI on every run; a network hiccup can make CI red for reasons unrelated to the code.
@@ -102,6 +101,5 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy pytest -q tests/test_entrypoint.py t
 ## Needs human
 
 - Review `docs/screens/watch_ai_*.png` on the presentation display and confirm the text is readable.
-- Invite Radithia Ary Winata as collaborator (need GitHub username).
 - Check the lecturer's policy on AI-assisted code/assets (PRD Section 14).
 - Confirm the presentation OS/screen and whether a recorded video fallback is needed.

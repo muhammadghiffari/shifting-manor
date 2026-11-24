@@ -9,7 +9,7 @@ description = "Haunted-manor deduction game with a rule-based, forward-chaining 
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Muhammad Ghiffari" }, { name = "Radithia Ary Winata" }]
+authors = [{ name = "Muhammad Ghiffari" }]
 dependencies = ["pygame-ce>=2.5"]
 
 [project.optional-dependencies]
