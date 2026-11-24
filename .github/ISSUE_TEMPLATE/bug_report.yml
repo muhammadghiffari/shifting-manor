@@ -1,0 +1,36 @@
+name: Bug Report
+description: Report a gameplay, AI deduction, UI, or browser WebAssembly bug
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Web Browser (GitHub Pages / WebAssembly)
+        - Desktop (Linux / macOS / Windows)
+        - CLI / Simulation Runner
+    validations:
+      required: true
+  - type: input
+    id: seed
+    attributes:
+      label: Mode & Map Seed (if applicable)
+      placeholder: "e.g., Explorer · HAUNT-4F2A · Agent B3"
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Open ...
+        2. Press ...
+        3. Observe ...
+    validations:
+      required: true

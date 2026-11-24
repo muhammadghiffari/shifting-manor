@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Play Shifting Manor Online
+    url: https://muhammadghiffari.github.io/shifting-manor/
+    about: Launch the live WebAssembly version directly in your browser.

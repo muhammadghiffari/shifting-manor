@@ -76,17 +76,25 @@ def test_landing_page_and_install_site(tmp_path):
     assert "play.html" in landing
     assert "media/gameplay_demo.gif" in landing
 
-    # Simulate pygbag output folder and verify landing/player split
+    # Simulate pygbag output folder and verify landing/player split + favicons
     target = tmp_path / "web"
     target.mkdir()
     (target / "index.html").write_text(
-        "<html><head></head><body>Ready to start ! Please click/touch page</body></html>",
+        '<html><head><link rel="icon" type="image/png" href="favicon.png" sizes="16x16">'
+        "</head><body>Ready to start ! Please click/touch page</body></html>",
         encoding="utf-8",
     )
     _install_landing_site(target)
-    assert "wing-grid" in (target / "index.html").read_text(encoding="utf-8")
+    idx_html = (target / "index.html").read_text(encoding="utf-8")
+    assert "wing-grid" in idx_html
+    assert "logo.svg?v=2" in idx_html
+    assert "favicon.ico?v=2" in idx_html
     assert (target / "logo.svg").is_file()
+    assert (target / "favicon.png").is_file()
+    assert (target / "favicon.ico").is_file()
     player = (target / "play.html").read_text(encoding="utf-8")
     assert 'id="home-pill"' in player
     assert "Shifting Manor is ready" in player
+    assert "logo.svg?v=2" in player
+    assert "favicon.ico?v=2" in player
     assert (target / "media" / "07_live_ai_autonomous.png").is_file()

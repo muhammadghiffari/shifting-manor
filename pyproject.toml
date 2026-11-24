@@ -4,16 +4,45 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "shifting-manor"
-version = "0.0.1"
-description = "Haunted-manor deduction game with a rule-based, forward-chaining Caretaker AI (AI course, Week 6)."
+version = "1.0.0"
+description = "A haunted-manor deduction game with 90-degree rotating wings and an autonomous 24-rule forward-chaining Caretaker AI."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Muhammad Ghiffari" }]
+keywords = [
+    "game-ai",
+    "forward-chaining",
+    "knowledge-based-agent",
+    "wumpus-world",
+    "pygame-ce",
+    "webassembly",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment :: Puzzle Games",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = ["pygame-ce>=2.5"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.5"]
+
+[project.scripts]
+shifting-manor = "shifting_manor.__main__:main"
+
+[project.urls]
+Homepage = "https://muhammadghiffari.github.io/shifting-manor/"
+"Play Online" = "https://muhammadghiffari.github.io/shifting-manor/play.html"
+Repository = "https://github.com/muhammadghiffari/shifting-manor"
+Issues = "https://github.com/muhammadghiffari/shifting-manor/issues"
+Changelog = "https://github.com/muhammadghiffari/shifting-manor/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["shifting_manor*"]

@@ -1,0 +1,18 @@
+name: Feature Request
+description: Suggest a gameplay improvement, AI experiment, or UX enhancement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: What gameplay, explainability, or UX need does this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature or change you have in mind.
+    validations:
+      required: true

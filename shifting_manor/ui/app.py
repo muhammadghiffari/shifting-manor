@@ -163,6 +163,8 @@ class App:
         self._set_window()
         self.canvas = pygame.Surface(LOGICAL_SIZE)
         pygame.display.set_caption(strings.TITLE)
+        if not IS_WEB:
+            pygame.display.set_icon(fx.render_lantern_emblem(64))
         self.clock = pygame.time.Clock()
         self.running = True
         self._t = 0.0

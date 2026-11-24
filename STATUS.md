@@ -1,10 +1,11 @@
 # STATUS
 
-_Last updated by:_ coding agent · _Date:_ 2026-11-24 (End-to-End Interactive Edition complete: Manual + Live Autonomous AI + Duel + Tutorial + Guide + SimLab + Settings + Procedural Audio)
+_Last updated:_ 2026-11-24 · **Release `v1.0.0`** (Manual + Live Autonomous AI + Duel + Tutorial + Guide + SimLab + WebAssembly GitHub Pages + Game-Native Landing Page)
 
 ## Done
 
-- **Section 12 — GitHub setup.** Private repo `muhammadghiffari/shifting-manor`, description, topics, MIT `LICENSE`, `main` pushed, CI green on the initial commit (run 39658869803). Milestones M0–M7 and issues #1–#8 created with acceptance criteria; labels created. Branch protection unavailable on this plan, so the per-milestone PR rule is followed by hand (see DECISIONS.md).
+- **Release `v1.0.0` — WebAssembly Deployment, Game-Native Landing Page & Repo Polish** (PRs #19, #20, #21, #22). Live browser play at `https://muhammadghiffari.github.io/shifting-manor/`, refined gothic lantern emblem (`web/logo.svg`, 4× supersampled `favicon.png`, `favicon.ico`, desktop window icon), interactive wing diorama + 3×3 R16 shift sandbox, gameplay trailer GIF, portfolio README, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, issue forms, and clean `v1.0.0` release.
+- **Section 12 — GitHub setup.** Public repo `muhammadghiffari/shifting-manor`, description, topics, MIT `LICENSE`, `main` pushed, CI + Pages workflows green. Milestones M0–M7 and issues #1–#8 completed and closed.
 - **M0 — Scaffolding** (PR #9, merged `6f7e45c`, tag `m0`). Package layout, `pyproject.toml`, pygame-ce launcher with a placeholder window, ruff + pytest CI, headless UI smoke test.
 - **M1 — Engine** (PR #10, merged `658f99d`, tag `m1`). Seeded generator (protected entrance neighbours, treasure reachable by a hazard-free path), percepts, Move/CastCharm/Leave, scoring, death/oil-out/escape, Shift telegraph + validation + skip + exact mapping. Rotation properties and the 1000-random-game soak test pass locally.
 - **M2 — KB + inference** (PR #11, merged `64e1ff2`, tag `m2`). Facts/constraints/globals, 24 separate rule objects R01–R24, fixed-priority forward chainer with a fixpoint guard and `Firing` log, pure R16 transport + B2/B2b variants, and a text CLI that prints percepts → rules fired → action for a full game. Every rule is hit by a hand-built scenario test.
