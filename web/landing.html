@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shifting Manor — Play Free Online | Haunted Deduction &amp; Autonomous AI</title>
+  <meta name="description" content="Explore a haunted manor where entire wings rotate 90° every few moves. Play manually with a flickering lantern, duel the AI, or watch a real 24-rule forward-chaining Caretaker AI play live autonomously — 100% free in your browser." />
+  <meta property="og:title" content="Shifting Manor — Play Free Online" />
+  <meta property="og:description" content="A haunted-manor deduction game with rotating wings and a real autonomous 24-rule forward-chaining AI. Play free in your browser!" />
+  <meta property="og:image" content="media/07_live_ai_autonomous.png" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <script>
+    // Preserve direct shareable game URLs like /?auto=1&agent=b3&mode=explorer&seed=HAUNT-4F2A
+    (function () {
+      var q = window.location.search;
+      if (q && /[?&](auto|duel|tutorial|simlab|watch|mode|seed)=/i.test(q)) {
+        window.location.replace("play.html" + q);
+      }
+    })();
+  </script>
+  <style>
+    :root {
+      --bg: #0e0b14;
+      --bg-deep: #08060d;
+      --panel: #171222;
+      --panel-light: #221b32;
+      --panel-hover: #2d2442;
+      --border: #4d3e62;
+      --ink: #eedeb9;
+      --ink-bright: #fcf4e0;
+      --muted: #9b91b0;
+      --gold: #ecbc5c;
+      --amber: #ffae4c;
+      --teal: #48d6c2;
+      --cyan: #94e4f4;
+      --orange: #f47648;
+      --violet: #b08ef2;
+      --red: #e25458;
+      --green: #76d086;
+      --radius: 14px;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Ambient atmospheric background */
+    #ambient-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .lantern-cursor {
+      position: fixed;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 174, 76, 0.11) 0%, rgba(236, 188, 92, 0.04) 38%, transparent 70%);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 1;
+      transition: opacity 0.4s ease;
+    }
+
+    main, header, footer { position: relative; z-index: 2; }
+    .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+    /* Navbar */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      background: rgba(14, 11, 20, 0.82);
+      border-bottom: 1px solid rgba(236, 188, 92, 0.18);
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--gold);
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: 0.06em;
+    }
+    .brand img { width: 34px; height: 34px; border-radius: 8px; box-shadow: 0 0 18px rgba(236, 188, 92, 0.35); }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--ink-bright); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: var(--panel-light);
+      color: var(--ink-bright);
+      transition: transform 0.16s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      user-select: none;
+    }
+    .btn:hover { transform: translateY(-2px); border-color: var(--gold); background: var(--panel-hover); }
+    .btn:active { transform: translateY(0); }
+    .btn-gold {
+      background: linear-gradient(135deg, #f3c460 0%, #d99536 100%);
+      color: #16100a;
+      border-color: #f8d88a;
+      box-shadow: 0 8px 28px rgba(236, 188, 92, 0.32);
+    }
+    .btn-gold:hover { background: linear-gradient(135deg, #ffd374 0%, #e4a142 100%); box-shadow: 0 12px 34px rgba(236, 188, 92, 0.45); color: #120c06; }
+    .btn-cyan {
+      background: rgba(148, 228, 244, 0.12);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 8px 24px rgba(148, 228, 244, 0.14);
+    }
+    .btn-cyan:hover { background: rgba(148, 228, 244, 0.22); border-color: #c5f3fc; color: #fff; }
+    .btn-teal {
+      background: rgba(72, 214, 194, 0.12);
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+    .btn-teal:hover { background: rgba(72, 214, 194, 0.22); color: #fff; }
+    .btn-sm { padding: 8px 14px; font-size: 0.86rem; border-radius: 8px; }
+
+    /* Hero */
+    .hero { padding: 62px 0 46px; }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.02fr 1.12fr;
+      gap: 42px;
+      align-items: center;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(236, 188, 92, 0.12);
+      border: 1px solid rgba(236, 188, 92, 0.45);
+      color: var(--gold);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .pill .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--teal);
+      box-shadow: 0 0 10px var(--teal);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.8); } }
+
+    h1 {
+      font-size: clamp(2.4rem, 4.4vw, 3.65rem);
+      line-height: 1.08;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-bottom: 18px;
+      background: linear-gradient(180deg, #fff6de 0%, #ecbc5c 62%, #d48c3a 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: 1.08rem;
+      color: #c9c0dc;
+      margin-bottom: 26px;
+      max-width: 540px;
+    }
+    .hero-sub strong { color: var(--ink-bright); }
+    .cta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .hero-note {
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    /* Monitor showcase card */
+    .demo-frame {
+      position: relative;
+      border-radius: 16px;
+      padding: 10px;
+      background: linear-gradient(145deg, rgba(236, 188, 92, 0.35), rgba(77, 62, 98, 0.45), rgba(72, 214, 194, 0.25));
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.72), 0 0 60px rgba(236, 188, 92, 0.14);
+    }
+    .demo-inner {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #0b0812;
+      aspect-ratio: 16 / 9;
+    }
+    .demo-inner img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .demo-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(14, 11, 20, 0.84);
+      border: 1px solid rgba(148, 228, 244, 0.55);
+      color: var(--cyan);
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      backdrop-filter: blur(6px);
+    }
+    .demo-play-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 14px;
+      background: linear-gradient(to top, rgba(8, 6, 13, 0.7) 0%, transparent 45%);
+      opacity: 0.92;
+      transition: opacity 0.25s;
+    }
+    .demo-inner:hover .demo-play-overlay { opacity: 1; }
+
+    /* Stat strip */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 38px;
+    }
+    .stat-card {
+      background: rgba(23, 18, 34, 0.85);
+      border: 1px solid rgba(98, 80, 128, 0.45);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
+    .stat-val { font-size: 1.55rem; font-weight: 900; color: var(--gold); line-height: 1.2; }
+    .stat-val.teal { color: var(--teal); }
+    .stat-val.cyan { color: var(--cyan); }
+    .stat-lbl { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+
+    /* Sections */
+    section { padding: 64px 0; }
+    .sec-head { text-align: center; max-width: 720px; margin: 0 auto 38px; }
+    .sec-tag {
+      display: inline-block;
+      color: var(--teal);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: clamp(1.75rem, 3vw, 2.35rem);
+      color: var(--ink-bright);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .sec-head p { color: var(--muted); font-size: 1rem; }
+
+    /* Interactive Twist Sandbox */
+    .sandbox-card {
+      background: var(--panel);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 32px;
+      align-items: center;
+    }
+    .wing-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .wing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 96px);
+      grid-template-rows: repeat(3, 96px);
+      gap: 6px;
+      padding: 10px;
+      border-radius: 14px;
+      background: var(--bg-deep);
+      border: 2px dashed var(--gold);
+      box-shadow: 0 0 32px rgba(236, 188, 92, 0.14);
+      transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s;
+    }
+    .wing-grid.spin-cw { transform: rotate(90deg); box-shadow: 0 0 46px rgba(236, 188, 92, 0.5); }
+    .wing-grid.spin-ccw { transform: rotate(-90deg); box-shadow: 0 0 46px rgba(148, 228, 244, 0.5); }
+    .wing-cell {
+      position: relative;
+      border-radius: 8px;
+      background: #251d33;
+      border: 1.5px solid #44365a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      user-select: none;
+    }
+    .wing-cell:hover { border-color: var(--gold); background: #312744; transform: scale(1.03); }
+    .wing-cell.selected { border-color: var(--cyan); box-shadow: inset 0 0 0 2px rgba(148, 228, 244, 0.45); }
+    .wing-cell.danger-mismatch { border-color: var(--red); background: rgba(226, 84, 88, 0.18); }
+    .wing-cell.safe-cell { background: rgba(72, 214, 194, 0.08); }
+    .cell-coord { position: absolute; top: 4px; left: 6px; font-size: 0.68rem; font-family: ui-monospace, monospace; color: var(--muted); }
+    .cell-icon { font-size: 1.7rem; line-height: 1; }
+    .cell-tag { font-size: 0.67rem; font-weight: 800; margin-top: 4px; letter-spacing: 0.04em; }
+    .cell-tag.pit { color: var(--orange); }
+    .cell-tag.ghost { color: var(--cyan); }
+    .cell-tag.heirloom { color: var(--gold); }
+    .cell-tag.safe { color: var(--teal); }
+    .cell-tag.stale { color: var(--red); }
+
+    .sandbox-controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .sandbox-panel h3 { color: var(--gold); font-size: 1.25rem; margin-bottom: 10px; }
+    .sandbox-panel p { color: #cbc2de; margin-bottom: 14px; font-size: 0.96rem; }
+    .agent-toggle { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .toggle-pill {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-deep);
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.86rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toggle-pill.active-b3 { border-color: var(--teal); color: var(--teal); background: rgba(72, 214, 194, 0.12); }
+    .toggle-pill.active-b2 { border-color: var(--orange); color: var(--orange); background: rgba(244, 118, 72, 0.14); }
+    .rule-terminal {
+      background: var(--bg-deep);
+      border: 1px solid #3c3050;
+      border-left: 3px solid var(--gold);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.83rem;
+      color: var(--ink);
+      margin-bottom: 14px;
+      min-height: 92px;
+      white-space: pre-wrap;
+    }
+    .sense-readout {
+      padding: 11px 14px;
+      border-radius: 10px;
+      background: rgba(34, 27, 50, 0.9);
+      border: 1px solid rgba(148, 228, 244, 0.3);
+      font-size: 0.9rem;
+      color: var(--cyan);
+    }
+
+    /* Custom Mission Launcher */
+    .launcher {
+      background: linear-gradient(135deg, rgba(34, 27, 50, 0.96), rgba(20, 15, 31, 0.98));
+      border: 1.5px solid rgba(236, 188, 92, 0.4);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+    .launcher-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .field label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .field select, .field input {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 9px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-deep);
+      color: var(--ink-bright);
+      font-size: 0.93rem;
+      font-weight: 600;
+      outline: none;
+    }
+    .field select:focus, .field input:focus { border-color: var(--cyan); }
+    .launcher-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .seed-chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .chip {
+      padding: 6px 11px;
+      border-radius: 7px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* How to Play Cards */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .step-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .step-card:hover { transform: translateY(-4px); border-color: var(--gold); }
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      font-weight: 900;
+      margin-bottom: 14px;
+      font-size: 0.95rem;
+    }
+    .step-card h3 { color: var(--ink-bright); font-size: 1.05rem; margin-bottom: 8px; }
+    .step-card p { color: var(--muted); font-size: 0.9rem; }
+    .controls-strip {
+      margin-top: 22px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 22px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px 26px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    kbd {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: var(--bg-deep);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+
+    /* Gallery */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .shot-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .shot-card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55); }
+    .shot-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #0a0711; }
+    .shot-meta { padding: 13px 16px; }
+    .shot-meta h4 { color: var(--ink-bright); font-size: 0.96rem; margin-bottom: 4px; }
+    .shot-meta p { color: var(--muted); font-size: 0.83rem; }
+
+    /* Benchmarks */
+    .bench-box {
+      background: var(--panel);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+    .bench-tabs { display: flex; gap: 10px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+    .bench-row {
+      display: grid;
+      grid-template-columns: 180px 1fr 125px;
+      gap: 16px;
+      align-items: center;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+    .bench-row.hero-row {
+      background: rgba(72, 214, 194, 0.09);
+      border: 1px solid rgba(72, 214, 194, 0.5);
+    }
+    .bench-name { font-weight: 700; font-size: 0.92rem; color: var(--ink-bright); }
+    .bar-track {
+      height: 22px;
+      border-radius: 7px;
+      background: var(--bg-deep);
+      overflow: hidden;
+      position: relative;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 7px;
+      transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .bench-num { font-family: ui-monospace, monospace; font-weight: 700; font-size: 0.9rem; text-align: right; color: var(--ink-bright); }
+    .bench-proof {
+      margin-top: 18px;
+      padding: 14px 18px;
+      border-radius: 10px;
+      background: var(--bg-deep);
+      border-left: 3px solid var(--teal);
+      font-size: 0.92rem;
+      color: var(--ink);
+    }
+
+    /* Rules Explorer */
+    .rules-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .rule-item {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 15px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .rule-item.highlight { border-color: var(--gold); background: rgba(236, 188, 92, 0.08); }
+    .rule-id {
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--bg-deep);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-family: ui-monospace, monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .rule-text { font-family: ui-monospace, monospace; font-size: 0.82rem; color: var(--ink); }
+
+    /* Lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 5, 12, 0.92);
+      z-index: 90;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      backdrop-filter: blur(8px);
+    }
+    .lightbox.open { display: flex; }
+    .lightbox-inner { max-width: 1040px; width: 100%; text-align: center; }
+    .lightbox-inner img { width: 100%; border-radius: 12px; border: 2px solid var(--gold); box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85); }
+    .lightbox-cap { margin-top: 14px; color: var(--ink); font-weight: 600; font-size: 1rem; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid rgba(98, 80, 128, 0.35);
+      background: rgba(8, 6, 13, 0.88);
+      padding: 38px 0 46px;
+      margin-top: 32px;
+    }
+    .foot-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+    }
+    .foot-cmd {
+      font-family: ui-monospace, monospace;
+      font-size: 0.82rem;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--cyan);
+    }
+
+    @media (max-width: 960px) {
+      .hero-grid, .sandbox-card { grid-template-columns: 1fr; }
+      .stats-strip, .steps-grid, .launcher-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .nav-links { display: none; }
+    }
+    @media (max-width: 600px) {
+      .cta-grid, .stats-strip, .steps-grid, .launcher-grid, .gallery-grid, .rules-grid { grid-template-columns: 1fr; }
+      .bench-row { grid-template-columns: 120px 1fr 86px; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="ambient-canvas"></canvas>
+  <div class="lantern-cursor" id="lantern-cursor"></div>
+
+  <header>
+    <div class="container nav">
+      <a class="brand" href="#">
+        <img src="favicon.png" alt="Shifting Manor Lantern" />
+        <span>SHIFTING MANOR</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#twist">Try the Twist</a></li>
+        <li><a href="#launcher">Custom Launch</a></li>
+        <li><a href="#howto">How to Play</a></li>
+        <li><a href="#gallery">Screenshots</a></li>
+        <li><a href="#benchmarks">AI Proof</a></li>
+        <li><a href="https://github.com/muhammadghiffari/shifting-manor" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+      <a class="btn btn-gold btn-sm" href="play.html">▶ Play Free</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-grid">
+          <div>
+            <div class="pill"><span class="dot"></span> 100% Free in Browser · WebAssembly · No Login</div>
+            <h1>A Haunted Manor That Won't Sit Still.</h1>
+            <p class="hero-sub">
+              Explore dark rooms with a flickering lantern, deduce hidden <strong>Pits</strong> and a <strong>Ghost</strong> from sensory clues, and survive <strong>90° rotating manor wings</strong>. Play manually, duel head-to-head, or watch a real <strong>24-rule forward-chaining AI</strong> think and play live autonomously.
+            </p>
+            <div class="cta-grid">
+              <a class="btn btn-gold" href="play.html">▶ Play Manually</a>
+              <a class="btn btn-cyan" href="play.html?auto=1&agent=b3&mode=explorer&seed=HAUNT-4F2A">🤖 Watch Real AI Live</a>
+              <a class="btn btn-teal" href="play.html?duel=1&mode=explorer&seed=HAUNT-4F2A">⚔ Duel vs Caretaker AI</a>
+              <a class="btn" href="play.html?tutorial=1">🎓 4-Lesson Tutorial</a>
+            </div>
+            <div class="hero-note">
+              <span>⚡ Press <strong>T</strong> mid-game for instant AI Takeover</span>
+              <span>🔍 Click any room for a live <strong>Why?</strong> proof tree</span>
+              <span>🔊 Synthesized gothic audio included</span>
+            </div>
+          </div>
+
+          <div class="demo-frame">
+            <div class="demo-inner">
+              <img src="media/gameplay_demo.gif" alt="Shifting Manor live gameplay and autonomous AI trailer" />
+              <span class="demo-badge">LIVE ENGINE FOOTAGE · MANUAL + AUTONOMOUS B3</span>
+              <div class="demo-play-overlay">
+                <a class="btn btn-gold btn-sm" href="play.html">▶ Launch Full Game</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-strip">
+          <div class="stat-card">
+            <div class="stat-val">24 Rules</div>
+            <div class="stat-lbl">Explicit IF–THEN Forward Chaining (R01–R24)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val teal">94.9% / 91.9% / 82.7%</div>
+            <div class="stat-lbl">B3 Win Rate (Apprentice / Explorer / Haunted)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val cyan">0 Avoidable Losses</div>
+            <div class="stat-lbl">Audited across 3,000 exact-posterior seeds</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val">+16.5 pp</div>
+            <div class="stat-lbl">R16 Transport vs Shift-Blind (p = 6.3×10⁻⁸)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTERACTIVE WING-SHIFT SANDBOX -->
+    <section id="twist">
+      <div class="container">
+        <div class="sec-head">
+          <span class="sec-tag">Interactive Preview · Zero Loading Wait</span>
+          <h2>Try the 90° Shifting Manor Twist Right Here</h2>
+          <p>Every few actions, a 3×3 wing rotates 90° carrying hidden Pits and the Ghost — while the golden Heirloom stays fixed. Click <strong>Rotate Wing</strong> to see why Caretaker AI (R16) crushes naive shift-blind agents!</p>
+        </div>
+
+        <div class="sandbox-card">
+          <div class="wing-wrap">
+            <div class="wing-grid" id="wing-grid"></div>
+            <div class="sandbox-controls">
+              <button class="btn btn-gold btn-sm" id="btn-rot-cw" type="button">↻ Rotate 90° CW</button>
+              <button class="btn btn-cyan btn-sm" id="btn-rot-ccw" type="button">↺ Rotate 90° CCW</button>
+              <button class="btn btn-sm" id="btn-rot-reset" type="button">Reset</button>
+            </div>
+          </div>
+
+          <div class="sandbox-panel">
+            <h3>Knowledge Transport (Rule R16) vs Shift-Blind (B2)</h3>
+            <p>Toggle which AI brain you are inspecting, click any tile to check its sensory percepts, and spin Wing SE:</p>
+            <div class="agent-toggle">
+              <button class="toggle-pill active-b3" id="mode-b3" type="button">✅ B3 Caretaker (R16 Transport)</button>
+              <button class="toggle-pill" id="mode-b2" type="button">⚠️ B2 Shift-Blind (Ignores Rotation)</button>
+            </div>
+            <div class="rule-terminal" id="rule-terminal"></div>
+            <div class="sense-readout" id="sense-readout">Click any room in Wing SE to inspect its live Breeze / Chill / Glimmer percepts!</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUSTOM LAUNCHER -->
+    <section id="launcher">
+      <div class="container">
+        <div class="sec-head">
+          <span class="sec-tag">Instant Browser Launch</span>
+          <h2>Configure a Custom Run or Share a Seed Challenge</h2>
+          <p>Same seed = identical map, identical hazard placement, and identical shift schedule. Challenge a classmate or test any of the 7 real AI agents live!</p>
+        </div>
+
+        <div class="launcher">
+          <div class="launcher-grid">
+            <div class="field">
+              <label for="cfg-playmode">Experience</label>
+              <select id="cfg-playmode">
+                <option value="manual">Play Manually</option>
+                <option value="auto" selected>Watch Real AI Play Live</option>
+                <option value="duel">Duel vs Caretaker B3</option>
+                <option value="watch">Watch AI Proof Inspector</option>
+                <option value="tutorial">4-Lesson Interactive Tutorial</option>
+                <option value="simlab">Simulation Lab Charts</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cfg-diff">Difficulty</label>
+              <select id="cfg-diff">
+                <option value="apprentice">Apprentice (4×4 · No Shifts)</option>
+                <option value="explorer" selected>Explorer (6×6 · Shift Every 8)</option>
+                <option value="haunted">Haunted (6×6 · Shift Every 5)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cfg-agent">AI Agent</label>
+              <select id="cfg-agent">
+                <option value="b3" selected>B3 · Caretaker AI (Full KB + R16)</option>
+                <option value="b5">B5 · Exact Bayesian Posterior</option>
+                <option value="b2b">B2b · Forgetful KB</option>
+                <option value="b2">B2 · Shift-Blind KB</option>
+                <option value="b1">B1 · Reactive Baseline</option>
+                <option value="b0">B0 · Random Baseline</option>
+                <option value="b4">B4 · Oracle (Upper Bound)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="cfg-seed">Map Seed</label>
+              <input id="cfg-seed" type="text" value="HAUNT-4F2A" maxlength="18" />
+            </div>
+          </div>
+
+          <div class="launcher-actions">
+            <div class="seed-chips">
+              <span style="font-size:0.8rem;color:var(--muted);font-weight:700;">FEATURED SEEDS:</span>
+              <button class="chip" type="button" data-seed="HAUNT-4F2A">HAUNT-4F2A</button>
+              <button class="chip" type="button" data-seed="HAUNT-7C1D">HAUNT-7C1D</button>
+              <button class="chip" type="button" data-seed="HAUNT-5D7C">HAUNT-5D7C</button>
+              <button class="chip" type="button" id="btn-rand-seed">🎲 Random</button>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-sm" id="btn-copy-link" type="button">📋 Copy Share Link</button>
+              <a class="btn btn-gold" id="btn-launch-custom" href="play.html?auto=1&agent=b3&mode=explorer&seed=HAUNT-4F2A">🚀 Launch in Browser →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW TO PLAY -->
+    <section id="howto">
+      <div class="container">
+        <div class="sec-head">
+          <span class="sec-tag">Learn in 60 Seconds</span>
+          <h2>How to Play Shifting Manor</h2>
+          <p>Simple Wumpus-World logic, supercharged with rotating wings, an in-game 4-lesson tutorial, and a built-in AI coach whenever you want a hint.</p>
+        </div>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-num" style="background:rgba(72,214,194,0.16);color:var(--teal);border:1px solid var(--teal);">1</div>
+            <h3>Explore &amp; Read Senses</h3>
+            <p>Start at Entrance <strong>(0,0)</strong>. <strong>Quiet</strong> proves all 4 neighbours safe! <strong>Breeze</strong> warns of an adjacent Pit; <strong>Chill</strong> warns of the Ghost; <strong>Glimmer</strong> signals the Heirloom.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num" style="background:rgba(176,142,242,0.16);color:var(--violet);border:1px solid var(--violet);">2</div>
+            <h3>Mark &amp; Banish</h3>
+            <p><strong>Right-click</strong> rooms to place Safe, Pit, Ghost, or ? notes. Have the Ghost cornered? Press <strong>C + direction</strong> to cast your 1-use Charm straight across the manor (+200 score)!</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num" style="background:rgba(244,118,72,0.16);color:var(--orange);border:1px solid var(--orange);">3</div>
+            <h3>Master the 90° Shift</h3>
+            <p>A <strong>Rumble</strong> warns 2 moves before a 3×3 wing rotates. Hazards <em>and your notes</em> rotate 90° together — and standing inside a wing holds it still!</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num" style="background:rgba(236,188,92,0.16);color:var(--gold);border:1px solid var(--gold);">4</div>
+            <h3>Grab &amp; Escape at (0,0)</h3>
+            <p>Step onto the gleaming <strong>Heirloom</strong> to collect it, navigate back to the golden Entrance door at <strong>(0,0)</strong> before your lantern oil runs out, and press <strong>E</strong> to escape!</p>
+          </div>
+        </div>
+
+        <div class="controls-strip">
+          <span><kbd>WASD</kbd>/<kbd>Arrows</kbd> Move (or click neighbour)</span>
+          <span><kbd>E</kbd> Leave Manor at (0,0)</span>
+          <span><kbd>C</kbd> Cast Charm</span>
+          <span><kbd>Right-Click</kbd> Mark Room</span>
+          <span><kbd>T</kbd> Live AI Takeover</span>
+          <span><kbd>I</kbd> Fair AI Hint</span>
+          <span><kbd>B</kbd> Belief Overlay</span>
+          <span><kbd>H</kbd> Field Guide</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section id="gallery">
+      <div class="container">
+        <div class="sec-head">
+          <span class="sec-tag">Visual Showcase</span>
+          <h2>Inside the Manor — Click Any Screen to Zoom</h2>
+          <p>Every screen is rendered live from the real Python + pygame-ce engine compiled directly to WebAssembly.</p>
+        </div>
+
+        <div class="gallery-grid">
+          <div class="shot-card" data-src="media/07_live_ai_autonomous.png" data-cap="Live Autonomous AI (B3) — Beliefs, Planned Route, Wing Shift Telegraph & Live Rule Firings">
+            <img src="media/07_live_ai_autonomous.png" alt="Live Autonomous AI" loading="lazy" />
+            <div class="shot-meta">
+              <h4>Live Autonomous AI (B3)</h4>
+              <p>Real-time deduction, belief overlay, wing rumble arrow, and streaming forward-chaining log.</p>
+            </div>
+          </div>
+          <div class="shot-card" data-src="media/03_board_fog.png" data-cap="Manual Play — Flickering Radial Lantern Fog-of-War, Marks, Senses & Live Coaching">
+            <img src="media/03_board_fog.png" alt="Manual Play Lantern Fog" loading="lazy" />
+            <div class="shot-meta">
+              <h4>Manual Play &amp; Lantern Fog</h4>
+              <p>Organic radial lantern light, remembered senses, clickable marks, and contextual coaching.</p>
+            </div>
+          </div>
+          <div class="shot-card" data-src="media/04_shift_midframe.png" data-cap="The Signature Twist — Live 90° Wing Rotation Carrying Hidden Hazards & Marks">
+            <img src="media/04_shift_midframe.png" alt="90-degree Wing Shift Midframe" loading="lazy" />
+            <div class="shot-meta">
+              <h4>90° Wing Shift Choreography</h4>
+              <p>Watch an entire 3×3 wing spin smoothly with dust particles while notes transport automatically.</p>
+            </div>
+          </div>
+          <div class="shot-card" data-src="media/11_duel_result.png" data-cap="Human vs AI Duel Showdown — Same Seed Side-by-Side Path & Score Comparison">
+            <img src="media/11_duel_result.png" alt="Duel Result Showdown" loading="lazy" />
+            <div class="shot-meta">
+              <h4>Human vs Caretaker Duel</h4>
+              <p>Play the exact same seed as B3 and compare paths, stars vs Oracle par, and score side-by-side.</p>
+            </div>
+          </div>
+          <div class="shot-card" data-src="media/08_tutorial.png" data-cap="Interactive 4-Lesson Playable Tutorial — Learn Breeze, Pit Deduction, Charm & Shifts Hands-On">
+            <img src="media/08_tutorial.png" alt="Interactive Tutorial" loading="lazy" />
+            <div class="shot-meta">
+              <h4>4-Lesson Interactive Tutorial</h4>
+              <p>Hands-on playable mini-boards plus a 4-tab illustrated Field Guide accessible anytime via [H].</p>
+            </div>
+          </div>
+          <div class="shot-card" data-src="media/watch_ai_why.png" data-cap="Explainable AI — Click Any Room for a Complete Forward-Chaining Why? Proof Tree">
+            <img src="media/watch_ai_why.png" alt="Why Proof Tree" loading="lazy" />
+            <div class="shot-meta">
+              <h4>Explainable Why? Proof Trees</h4>
+              <p>Trace every Safe, Pit, or Ghost conclusion all the way back through R16 shifts to original percepts.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EMPIRICAL BENCHMARKS -->
+    <section id="benchmarks">
+      <div class="container">
+        <div class="sec-head">
+          <span class="sec-tag">Measured, Not Claimed</span>
+          <h2>Empirical Proof That Knowledge Transport Matters</h2>
+          <p>Evaluated over 200 same-seed games per mode (plus a 1,000-seed/mode exact Bayesian optimality audit). Switch difficulties to inspect real win rates:</p>
+        </div>
+
+        <div class="bench-box">
+          <div class="bench-tabs">
+            <button class="toggle-pill" data-bmode="apprentice" type="button">Apprentice (4×4 · No Shifts)</button>
+            <button class="toggle-pill" data-bmode="explorer" type="button">Explorer (6×6 · Shift / 8)</button>
+            <button class="toggle-pill active-b3" data-bmode="haunted" type="button">Haunted (6×6 · Shift / 5)</button>
+          </div>
+          <div id="bench-bars"></div>
+          <div class="bench-proof" id="bench-proof"></div>
+        </div>
+
+        <!-- 24-Rule Explorer -->
+        <div style="margin-top:42px;">
+          <div class="bench-tabs" id="rule-tabs">
+            <button class="toggle-pill active-b3" data-rcat="transport" type="button">✨ R16 Knowledge Transport</button>
+            <button class="toggle-pill" data-rcat="percept" type="button">Perception (R01–R05)</button>
+            <button class="toggle-pill" data-rcat="deduce" type="button">Deduction (R06–R15)</button>
+            <button class="toggle-pill" data-rcat="plan" type="button">Planning &amp; Risk (R17–R24)</button>
+          </div>
+          <div class="rules-grid" id="rules-grid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container foot-grid">
+      <div>
+        <div style="color:var(--gold);font-weight:800;font-size:1.05rem;">SHIFTING MANOR</div>
+        <div style="color:var(--muted);font-size:0.85rem;margin-top:4px;">
+          Built by Muhammad Ghiffari &amp; Radithia Ary Winata · MIT License · Pure Python + pygame-ce + WebAssembly
+        </div>
+      </div>
+      <div class="foot-cmd">pip install -e . &amp;&amp; python -m shifting_manor</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a class="btn btn-sm" href="https://github.com/muhammadghiffari/shifting-manor" target="_blank" rel="noopener">GitHub Repo</a>
+        <a class="btn btn-gold btn-sm" href="play.html">▶ Play Online</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Lightbox Modal -->
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-inner">
+      <img id="lb-img" src="" alt="" />
+      <div class="lightbox-cap" id="lb-cap"></div>
+      <div style="margin-top:14px;">
+        <button class="btn btn-sm" id="lb-close" type="button">Close (Esc)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 1. Ambient stars & drifting lantern embers + cursor lantern spotlight
+    (function () {
+      const c = document.getElementById("ambient-canvas");
+      const ctx = c.getContext("2d");
+      let w = 0, h = 0;
+      const stars = [];
+      const embers = [];
+      function resize() {
+        w = c.width = window.innerWidth;
+        h = c.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener("resize", resize);
+      for (let i = 0; i < 65; i++) {
+        stars.push({ x: Math.random(), y: Math.random(), r: 0.8 + Math.random() * 1.4, p: Math.random() * 6.28 });
+      }
+      for (let i = 0; i < 24; i++) {
+        embers.push({ x: Math.random(), y: Math.random(), vy: 0.00018 + Math.random() * 0.00035, vx: (Math.random() - 0.5) * 0.00016, r: 1.2 + Math.random() * 2.2 });
+      }
+      function tick(ts) {
+        ctx.clearRect(0, 0, w, h);
+        const t = ts * 0.001;
+        for (const s of stars) {
+          const a = 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(t * 1.6 + s.p));
+          ctx.fillStyle = `rgba(176, 162, 224, ${a.toFixed(2)})`;
+          ctx.beginPath();
+          ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        for (const e of embers) {
+          e.y -= e.vy;
+          e.x += e.vx + Math.sin(t + e.y * 8) * 0.00008;
+          if (e.y < -0.02) { e.y = 1.02; e.x = Math.random(); }
+          ctx.fillStyle = "rgba(255, 184, 86, 0.34)";
+          ctx.beginPath();
+          ctx.arc(e.x * w, e.y * h, e.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      const spot = document.getElementById("lantern-cursor");
+      window.addEventListener("mousemove", (e) => {
+        spot.style.left = e.clientX + "px";
+        spot.style.top = e.clientY + "px";
+      });
+    })();
+
+    // 2. Interactive 3x3 Wing SE Rotation Sandbox
+    (function () {
+      const gridEl = document.getElementById("wing-grid");
+      const termEl = document.getElementById("rule-terminal");
+      const senseEl = document.getElementById("sense-readout");
+      const btnB3 = document.getElementById("mode-b3");
+      const btnB2 = document.getElementById("mode-b2");
+
+      // Wing SE coords: x in 3..5, y in 0..2, center (4,1)
+      const INIT = { pit: [3, 0], ghost: [4, 0], heirloom: [5, 2] };
+      let truth = { pit: [...INIT.pit], ghost: [...INIT.ghost], heirloom: [...INIT.heirloom] };
+      let b2Belief = { pit: [...INIT.pit], ghost: [...INIT.ghost] };
+      let mode = "b3";
+      let rotations = 0;
+      let selected = [4, 1];
+      let spinning = false;
+
+      function rotCell([x, y], dir) {
+        const dx = x - 4, dy = y - 1;
+        return dir === "cw" ? [4 + dy, 1 - dx] : [4 - dy, 1 + dx];
+      }
+      function same(a, b) { return a[0] === b[0] && a[1] === b[1]; }
+      function adj(a, b) { return Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) === 1; }
+
+      function render() {
+        gridEl.innerHTML = "";
+        for (let y = 2; y >= 0; y--) {
+          for (let x = 3; x <= 5; x++) {
+            const c = [x, y];
+            const el = document.createElement("div");
+            el.className = "wing-cell";
+            if (same(c, selected)) el.classList.add("selected");
+
+            const belief = mode === "b3" ? truth : b2Belief;
+            const isTruePit = same(c, truth.pit);
+            const isTrueGhost = same(c, truth.ghost);
+            const isBelPit = same(c, belief.pit);
+            const isBelGhost = same(c, belief.ghost);
+            const isHeirloom = same(c, truth.heirloom);
+
+            let icon = "✓", tag = "SAFE", cls = "safe";
+            if (isHeirloom) { icon = "◆"; tag = "HEIRLOOM"; cls = "heirloom"; }
+            else if (isBelPit) { icon = "⊗"; tag = mode === "b2" && !isTruePit ? "STALE PIT" : "PIT"; cls = mode === "b2" && !isTruePit ? "stale" : "pit"; }
+            else if (isBelGhost) { icon = "👻"; tag = mode === "b2" && !isTrueGhost ? "STALE GHOST" : "GHOST"; cls = mode === "b2" && !isTrueGhost ? "stale" : "ghost"; }
+            else { el.classList.add("safe-cell"); }
+
+            // Highlight deadly mismatch when B2 thinks a true hazard room is SAFE!
+            if (mode === "b2" && (isTruePit || isTrueGhost) && !isBelPit && !isBelGhost) {
+              el.classList.add("danger-mismatch");
+              icon = "💀";
+              tag = "B2 THINKS SAFE!";
+              cls = "stale";
+            }
+
+            el.innerHTML = `<span class="cell-coord">${x},${y}</span><span class="cell-icon">${icon}</span><span class="cell-tag ${cls}">${tag}</span>`;
+            el.addEventListener("click", () => { selected = c; render(); });
+            gridEl.appendChild(el);
+          }
+        }
+
+        // Update terminal
+        if (rotations === 0) {
+          termEl.textContent =
+            `Turn 0 · Wing SE initial state (center 4,1)\n` +
+            `  True hazards: Pit(${truth.pit}) · Ghost(${truth.ghost}) · Fixed Heirloom(${truth.heirloom})\n` +
+            `  Click "Rotate 90° CW" to trigger a live wing shift!`;
+        } else if (mode === "b3") {
+          termEl.textContent =
+            `✅ B3 CARETAKER — R16 KNOWLEDGE TRANSPORT (Shift #${rotations})\n` +
+            `  R16 Rotated(SE) => Pit(${truth.pit}), Ghost(${truth.ghost}) transported cleanly!\n` +
+            `  Heirloom(${truth.heirloom}) stays fixed. Zero stale beliefs — safe routing intact.`;
+        } else {
+          termEl.textContent =
+            `⚠️ B2 SHIFT-BLIND — IGNORED ROTATION (Shift #${rotations})\n` +
+            `  B2 still believes Pit(${b2Belief.pit}) & Ghost(${b2Belief.ghost}) never moved!\n` +
+            `  True hazards moved to Pit(${truth.pit}) & Ghost(${truth.ghost}) — B2 marks them SAFE 💀`;
+        }
+
+        // Senses for selected room
+        const senses = [];
+        if (adj(selected, truth.pit)) senses.push("❄️ BREEZE (Pit adjacent)");
+        if (adj(selected, truth.ghost)) senses.push("👻 CHILL (Ghost adjacent)");
+        if (same(selected, truth.heirloom) || adj(selected, truth.heirloom)) senses.push("✨ GLIMMER (Heirloom nearby!)");
+        if (same(selected, truth.pit)) senses.push("💀 DEADLY PIT ROOM");
+        if (same(selected, truth.ghost)) senses.push("💀 DEADLY GHOST ROOM");
+        senseEl.textContent = `Room (${selected[0]}, ${selected[1]}) Live Senses: ` + (senses.length ? senses.join("  ·  ") : "🌙 QUIET — All 4 neighbours are SAFE!");
+      }
+
+      function spin(dir) {
+        if (spinning) return;
+        spinning = true;
+        gridEl.classList.add(dir === "cw" ? "spin-cw" : "spin-ccw");
+        setTimeout(() => {
+          truth.pit = rotCell(truth.pit, dir);
+          truth.ghost = rotCell(truth.ghost, dir);
+          rotations += 1;
+          gridEl.style.transition = "none";
+          gridEl.classList.remove("spin-cw", "spin-ccw");
+          render();
+          void gridEl.offsetWidth;
+          gridEl.style.transition = "";
+          spinning = false;
+        }, 520);
+      }
+
+      document.getElementById("btn-rot-cw").addEventListener("click", () => spin("cw"));
+      document.getElementById("btn-rot-ccw").addEventListener("click", () => spin("ccw"));
+      document.getElementById("btn-rot-reset").addEventListener("click", () => {
+        truth = { pit: [...INIT.pit], ghost: [...INIT.ghost], heirloom: [...INIT.heirloom] };
+        rotations = 0;
+        render();
+      });
+      btnB3.addEventListener("click", () => {
+        mode = "b3";
+        btnB3.classList.add("active-b3");
+        btnB2.classList.remove("active-b2");
+        render();
+      });
+      btnB2.addEventListener("click", () => {
+        mode = "b2";
+        btnB2.classList.add("active-b2");
+        btnB3.classList.remove("active-b3");
+        render();
+      });
+      render();
+    })();
+
+    // 3. Custom Mission Launcher + Share Link
+    (function () {
+      const elMode = document.getElementById("cfg-playmode");
+      const elDiff = document.getElementById("cfg-diff");
+      const elAgent = document.getElementById("cfg-agent");
+      const elSeed = document.getElementById("cfg-seed");
+      const btnGo = document.getElementById("btn-launch-custom");
+      const btnCopy = document.getElementById("btn-copy-link");
+
+      function buildQuery() {
+        const pm = elMode.value;
+        const diff = elDiff.value;
+        const agent = elAgent.value;
+        const seed = (elSeed.value.trim() || "HAUNT-4F2A").toUpperCase();
+        const q = new URLSearchParams();
+        if (pm === "tutorial") { q.set("tutorial", "1"); }
+        else if (pm === "simlab") { q.set("simlab", "1"); }
+        else {
+          q.set("mode", diff);
+          q.set("seed", seed);
+          if (pm === "auto") { q.set("auto", "1"); q.set("agent", agent); }
+          else if (pm === "duel") { q.set("duel", "1"); }
+          else if (pm === "watch") { q.set("watch", "1"); q.set("agent", agent); }
+        }
+        return "?" + q.toString();
+      }
+      function sync() {
+        btnGo.href = "play.html" + buildQuery();
+      }
+      [elMode, elDiff, elAgent].forEach((el) => el.addEventListener("change", sync));
+      elSeed.addEventListener("input", sync);
+      document.querySelectorAll(".chip[data-seed]").forEach((ch) => {
+        ch.addEventListener("click", () => { elSeed.value = ch.dataset.seed; sync(); });
+      });
+      document.getElementById("btn-rand-seed").addEventListener("click", () => {
+        const hex = Math.floor(Math.random() * 0xffff).toString(16).toUpperCase().padStart(4, "0");
+        elSeed.value = "HAUNT-" + hex;
+        sync();
+      });
+      btnCopy.addEventListener("click", () => {
+        const fullUrl = new URL("play.html" + buildQuery(), window.location.href).toString();
+        navigator.clipboard.writeText(fullUrl).then(() => {
+          btnCopy.textContent = "✅ Link Copied!";
+          setTimeout(() => { btnCopy.textContent = "📋 Copy Share Link"; }, 2200);
+        });
+      });
+      sync();
+    })();
+
+    // 4. Empirical Benchmarks Explorer (Real 200-seed data from sim/results.json)
+    (function () {
+      const DATA = {
+        apprentice: {
+          proof: "Apprentice (4×4) has NO shifts — B2, B2b, and B3 perform identically (94.5% win rate), proving the shift gap in Explorer & Haunted comes purely from R16 knowledge transport.",
+          rows: [
+            ["B0 Random", 5.0, "#625878"],
+            ["B1 Reactive", 3.5, "#8a80a3"],
+            ["B2 Shift-Blind", 94.5, "#f47648"],
+            ["B2b Forgetful", 94.5, "#ecbc5c"],
+            ["B3 Caretaker (R16)", 94.5, "#48d6c2", true],
+            ["B4 Oracle (Ceiling)", 100.0, "#b08ef2"],
+          ]
+        },
+        explorer: {
+          proof: "Explorer (6×6, shift every 8): B3 beats Shift-Blind B2 by +14.0 pp (paired McNemar p = 1.8×10⁻⁶) and Forgetful B2b by +8.0 pp (p = 8.0×10⁻⁴). 1,000-seed audit: 91.9% win rate, 0 avoidable losses.",
+          rows: [
+            ["B0 Random", 4.5, "#625878"],
+            ["B1 Reactive", 3.5, "#8a80a3"],
+            ["B2 Shift-Blind", 77.5, "#f47648"],
+            ["B2b Forgetful", 83.5, "#ecbc5c"],
+            ["B3 Caretaker (R16)", 91.5, "#48d6c2", true],
+            ["B4 Oracle (Ceiling)", 100.0, "#b08ef2"],
+          ]
+        },
+        haunted: {
+          proof: "Haunted (6×6, shift every 5): B3 beats Shift-Blind B2 by +16.5 pp (paired McNemar p = 6.3×10⁻⁸) and Forgetful B2b by +13.5 pp (p = 1.4×10⁻⁶). 1,000-seed audit: 82.7% win rate, B3 ≡ Exact Bayes B5 (p = 1.0)!",
+          rows: [
+            ["B0 Random", 4.5, "#625878"],
+            ["B1 Reactive", 3.0, "#8a80a3"],
+            ["B2 Shift-Blind", 66.0, "#f47648"],
+            ["B2b Forgetful", 69.0, "#ecbc5c"],
+            ["B3 Caretaker (R16)", 82.5, "#48d6c2", true],
+            ["B4 Oracle (Ceiling)", 100.0, "#b08ef2"],
+          ]
+        }
+      };
+
+      const barsEl = document.getElementById("bench-bars");
+      const proofEl = document.getElementById("bench-proof");
+      function renderBench(mode) {
+        const d = DATA[mode];
+        barsEl.innerHTML = d.rows.map(([name, pct, col, hero]) => `
+          <div class="bench-row ${hero ? "hero-row" : ""}">
+            <div class="bench-name">${name}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${col};"></div></div>
+            <div class="bench-num">${pct.toFixed(1)}%</div>
+          </div>
+        `).join("");
+        proofEl.textContent = d.proof;
+      }
+      document.querySelectorAll("[data-bmode]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("[data-bmode]").forEach((b) => b.classList.remove("active-b3"));
+          btn.classList.add("active-b3");
+          renderBench(btn.dataset.bmode);
+        });
+      });
+      renderBench("haunted");
+    })();
+
+    // 5. 24-Rule Explorer
+    (function () {
+      const RULES = {
+        transport: [
+          ["R16", "IF Rotated(wing, direction) THEN transport every Pit/Ghost fact and constraint set inside wing by the exact 90° bijection (Heirloom facts stay fixed) — with full provenance edges!", true],
+          ["R24", "IF Rumble(wing) and agent outside wing THEN avoid routing through Safe cells inside wing across the impending shift.", true],
+        ],
+        percept: [
+          ["R01", "Visited(c) => NoPit(c) and NoGhost(c) (for the room just entered)"],
+          ["R02", "NoBreeze(c) => NoPit(n) for every 4-neighbour n of c"],
+          ["R03", "NoChill(c) => NoGhost(n) for every 4-neighbour n of c"],
+          ["R04", "Breeze(c) => Constraint(PIT, neighbours(c))"],
+          ["R05", "Chill(c) => Constraint(GHOST, neighbours(c))"],
+        ],
+        deduce: [
+          ["R06", "Constraint(PIT, S) with 1 candidate lacking NoPit => Pit(n)"],
+          ["R07", "Constraint(GHOST, S) with 1 candidate lacking NoGhost => Ghost(n)"],
+          ["R08", "NoPit(c) and NoGhost(c) => Safe(c)"],
+          ["R09", "Pit(c) or living Ghost(c) => Unsafe(c)"],
+          ["R10", "Ghost(g) known => NoGhost(x) for all x ≠ g"],
+          ["R11", "Known Pit count == PitTotal => NoPit everywhere else"],
+          ["R12", "Scream => GhostAlive = False; clear all ghost facts"],
+          ["R13–15", "NoGlimmer / Glimmer => NoTreasure & Constraint(TREASURE) => TreasureAt(t)"],
+        ],
+        plan: [
+          ["R17", "BFS path of Safe cells from agent to b => Reachable(b) with explicit safe path"],
+          ["R18", "HasTreasure and Reachable(entrance) => Goal = Entrance (0,0)"],
+          ["R19", "TreasureAt(t) and Reachable(t) => Goal = t"],
+          ["R20", "Ghost(g), CharmAvailable, agent in line => CastCharm toward g"],
+          ["R21", "Safe unvisited reachable room exists => Goal = nearest safe room"],
+          ["R22", "No safe goal => Exact model enumeration + whole-route expected utility gamble"],
+          ["R23", "Oil ≤ safe return distance + 3 => Retreat home safely"],
+        ]
+      };
+      const grid = document.getElementById("rules-grid");
+      function showRules(cat) {
+        grid.innerHTML = RULES[cat].map(([id, text, hi]) => `
+          <div class="rule-item ${hi ? "highlight" : ""}">
+            <span class="rule-id">${id}</span>
+            <span class="rule-text">${text}</span>
+          </div>
+        `).join("");
+      }
+      document.querySelectorAll("[data-rcat]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("[data-rcat]").forEach((b) => b.classList.remove("active-b3"));
+          btn.classList.add("active-b3");
+          showRules(btn.dataset.rcat);
+        });
+      });
+      showRules("transport");
+    })();
+
+    // 6. Screenshot Lightbox
+    (function () {
+      const lb = document.getElementById("lightbox");
+      const lbImg = document.getElementById("lb-img");
+      const lbCap = document.getElementById("lb-cap");
+      document.querySelectorAll(".shot-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          lbImg.src = card.dataset.src;
+          lbCap.textContent = card.dataset.cap;
+          lb.classList.add("open");
+        });
+      });
+      function close() { lb.classList.remove("open"); }
+      document.getElementById("lb-close").addEventListener("click", close);
+      lb.addEventListener("click", (e) => { if (e.target === lb) close(); });
+      window.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+    })();
+  </script>
+</body>
+</html>

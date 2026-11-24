@@ -34,10 +34,12 @@ jobs:
       - name: Verify bundle artifacts
         run: |
           test -f dist/web/index.html
+          test -f dist/web/play.html
           test -f dist/web/shifting_manor.apk
           test -f dist/web/shifting_manor.tar.gz
           test -f dist/web/favicon.png
-          ls -lh dist/web/
+          test -f dist/web/media/gameplay_demo.gif
+          ls -lh dist/web/ dist/web/media/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
