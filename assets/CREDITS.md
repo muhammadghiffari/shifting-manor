@@ -4,4 +4,4 @@ List every non-original asset here: file, source URL, author, license. Mark AI-g
 
 | File | Source / tool | Author | License | AI-generated? |
 |---|---|---|---|---|
-| (none yet) | | | | |
+| `assets/fonts/DejaVuSans.ttf`, `DejaVuSans-Bold.ttf`, `DejaVuSansMono.ttf` | DejaVu Fonts (https://dejavu-fonts.github.io/), see `assets/fonts/DEJAVU_LICENSE.txt` | Bitstream Inc. & DejaVu Fonts Team | Bitstream Vera / Arev permissive open font license | No |

@@ -299,7 +299,7 @@ The exact branch at 81–121 tries every allowed number of frontier pits, checks
 
 **Purpose.** A* finds a route from the agent to a goal while charging more for risky cells. It is used twice: a strict safe route through `Safe` cells, and a cautious route that may cross unknown cells for R22.
 
-**Key functions.** `Route` (15), `kb_risk` (25, the old M2 fallback), `astar` (34), `safe_route` (83), `cautious_route` (90), `expected_utility` (111).
+**Key functions.** `Route` (15), `kb_risk` (25, the old M2 fallback), `astar` (34), `safe_route` (83), `cautious_route` (97), `expected_utility` (119).
 
 Excerpt (lines 59–79):
 
@@ -343,7 +343,7 @@ return None
 
 **Purpose.** This is the only place where perception, inference, enumeration and planning are ordered. It turns one `Percepts` object plus the events from the previous action into one `Action` and an explanation for the UI.
 
-**Key functions.** `KBAgent.reset` (89), `act` (106), `_absorb` (137), `_sync_globals` (151), `_decide` (159), `_move_to` (211), `_gamble_target` (265), `_fallback` (311), `_thought` (340).
+**Key functions.** `KBAgent.reset` (89), `act` (106), `_absorb` (137), `_sync_globals` (151), `_decide` (159), `_move_to` (211), `_gamble_target` (265), `_fallback` (329), `_thought` (358).
 
 Excerpt (lines 106–131):
 
@@ -507,7 +507,7 @@ The UI never reruns the agent. It reads these frozen records and draws them. Tha
 
 **Purpose.** `WatchView` owns the Watch AI screen: autoplay, speed, tabs, belief overlay, live delta log, rules list and the proof overlay. It is deliberately a view; it does not inference or mutate the game.
 
-**Key functions.** `WatchView` (60), `duration` (116), `visible_new` (121), `advance` (138), `update` (164), `_key` (205), `_click` (262), `_draw_board` (401), `_draw_belief` (442), `_draw_log` (733), `_visible_log` (788), `_draw_kb` (797), `_draw_proof` (890), `_open_room_proof` (315).
+**Key functions.** `WatchView` (64), `duration` (116), `visible_new` (121), `advance` (138), `update` (164), `_key` (205), `_click` (262), `_draw_board` (401), `_draw_belief` (442), `_draw_log` (747), `_visible_log` (805), `_draw_kb` (814), `_draw_proof` (907), `_open_room_proof` (315).
 
 Excerpt, playback update (lines 164–183):
 
@@ -541,7 +541,7 @@ def update(self, dt: float) -> None:
 - `178–179` call the optional callback when a new line appears. The app currently passes none; audio polish is explicitly out of scope.
 - `180–183` when the step's duration is over, move to the next step or stop at the last one. The app's demo loop watches `finished()` and waits 3 seconds before rebuilding the next trace.
 
-The log at 733–786 lays out only `rows_new`, i.e. `step.firings` filtered to `new=True`. The `_visible_log` slice at 788–795 is the delta stream: previous turns are complete, the current turn grows line by line. The board's gold highlight comes from `firing_cells` (trace.py:291), not from a hard-coded coordinate.
+The log at 747–803 lays out only `rows_new`, i.e. `step.firings` filtered to `new=True`, wrapped with `theme.wrap` so long firings (like the R16 aggregate transport line) never truncate. The `_visible_log` slice at 805–812 is the delta stream: previous turns are complete, the current turn grows line by line. The board's gold highlight comes from `firing_cells` (trace.py:291), not from a hard-coded coordinate.
 
 `_open_room_proof` (315) first finds a fact for the clicked room, preferring `Safe`, `Pit`, `Ghost`, `NoPit`, `NoGhost`, `NoTreasure`, then `Visited`, and asks `TraceStore.proof`. The proof overlay draws the resulting `ProofNode` tree and lets a node expand if the chain is deeper than six levels.
 
