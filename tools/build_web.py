@@ -53,6 +53,27 @@ BROWSER_PATCH = """
     cursor: pointer;
   }
   progress { accent-color: #ECBC5C; }
+  #home-pill {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 999998;
+    padding: 6px 13px;
+    border-radius: 999px;
+    background: rgba(23, 18, 34, 0.72);
+    border: 1px solid rgba(236, 188, 92, 0.55);
+    color: #ECBC5C;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    backdrop-filter: blur(6px);
+    opacity: 0.45;
+    transition: opacity 0.2s, background 0.2s;
+  }
+  #home-pill:hover {
+    opacity: 1;
+    background: rgba(34, 27, 50, 0.95);
+  }
 </style>
 <script>
   window.addEventListener("contextmenu", function (e) {
@@ -62,6 +83,20 @@ BROWSER_PATCH = """
   }, { capture: true });
 </script>
 """
+
+LANDING_MEDIA = (
+    "gameplay_demo.gif",
+    "watch_ai_demo.gif",
+    "01_title.png",
+    "03_board_fog.png",
+    "04_shift_midframe.png",
+    "06_result.png",
+    "07_live_ai_autonomous.png",
+    "08_tutorial.png",
+    "10_simlab.png",
+    "11_duel_result.png",
+    "watch_ai_why.png",
+)
 
 
 def _generate_favicon(dest: Path) -> None:
@@ -127,11 +162,10 @@ def stage_web_app(stage_dir: Path) -> Path:
     return stage_dir
 
 
-def _patch_index_html(web_dir: Path) -> None:
-    index = web_dir / "index.html"
-    if not index.is_file():
+def _patch_player_html(html_path: Path) -> None:
+    if not html_path.is_file():
         return
-    html = index.read_text(encoding="utf-8")
+    html = html_path.read_text(encoding="utf-8")
     html = html.replace('"#7f7f7f"', '"#0E0B14"')
     html = html.replace(
         "Ready to start ! Please click/touch page",
@@ -145,7 +179,36 @@ def _patch_index_html(web_dir: Path) -> None:
             html = html.replace("</head>", BROWSER_PATCH + "\n</head>", 1)
         else:
             html += BROWSER_PATCH
-    index.write_text(html, encoding="utf-8")
+    if 'id="home-pill"' not in html and "<body>" in html:
+        html = html.replace(
+            "<body>",
+            '<body>\n    <a id="home-pill" href="index.html">← Home</a>',
+            1,
+        )
+    html_path.write_text(html, encoding="utf-8")
+
+
+def _install_landing_site(target: Path) -> None:
+    """Move pygbag's player to play.html and install web/landing.html as index.html."""
+    pygbag_index = target / "index.html"
+    play_html = target / "play.html"
+    if pygbag_index.is_file():
+        shutil.move(str(pygbag_index), str(play_html))
+    _patch_player_html(play_html)
+
+    landing_src = ROOT / "web" / "landing.html"
+    if landing_src.is_file():
+        shutil.copy2(landing_src, target / "index.html")
+    else:
+        shutil.copy2(play_html, target / "index.html")
+
+    media_dst = target / "media"
+    media_dst.mkdir(parents=True, exist_ok=True)
+    screens_src = ROOT / "docs" / "screens"
+    for name in LANDING_MEDIA:
+        src = screens_src / name
+        if src.is_file():
+            shutil.copy2(src, media_dst / name)
 
 
 def build_web(out_dir: Path | None = None, *, stage_dir: Path | None = None) -> Path:
@@ -190,12 +253,13 @@ def build_web(out_dir: Path | None = None, *, stage_dir: Path | None = None) -> 
     if custom_icon.is_file():
         shutil.copy2(custom_icon, target / "favicon.png")
 
-    _patch_index_html(target)
+    # Install interactive landing page at index.html and WASM game player at play.html
+    _install_landing_site(target)
 
     # Prevent GitHub Pages Jekyll from skipping dotfiles/assets
     (target / ".nojekyll").write_text("", encoding="utf-8")
 
-    # Copy itch.io archive if produced
+    # Copy itch.io archive if produced (keeps pygbag's own index.html inside the zip)
     zip_src = stage / "build" / "web.zip"
     if zip_src.is_file():
         shutil.copy2(zip_src, target.parent / "shifting-manor-web.zip")
